@@ -63,6 +63,9 @@ public:
         list_db_.reset();
         zset_db_.reset();
         set_db_.reset();
+
+        meta_db_.reset();
+        raft_db_.reset();
         //delete kv_db_.get();
         //delete hash_db_.get();
         //delete list_db_.get();
@@ -143,7 +146,10 @@ public:
     Status HVals(const std::string &key, std::vector<std::string> &vals);
     Status HIncrby(const std::string &key, const std::string &field, int64_t by, std::string &new_val);
     Status HIncrbyfloat(const std::string &key, const std::string &field, double by, std::string &new_val);
-    
+    HmetaIterator * HmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot = true);
+    bool HSize(const std::string &key, HashMeta & meta);
+    int IncrHSize(const std::string &key, int64_t incrlen ,int64_t incrvol, rocksdb::WriteBatch &writebatch);
+
     // ==============List=====================
     Status LIndex(const std::string &key, const int64_t index, std::string *val);
     Status LLen(const std::string &key, int64_t *llen);
@@ -159,6 +165,7 @@ public:
     Status RPopLPush(const std::string &src, const std::string &dest, std::string &val);
     Status LInsert(const std::string &key, Position pos, const std::string &pivot, const std::string &val, int64_t *llen);
     Status LRem(const std::string &key, const int64_t count, const std::string &val, int64_t *rem_count);
+    LmetaIterator * LmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot = true);
 
     // ==============ZSet=====================
     Status ZAdd(const std::string &key, const double score, const std::string &member, int64_t *res);
@@ -185,6 +192,7 @@ public:
     Status SAdd(const std::string &key, const std::string &member, int64_t *res);
     Status SRem(const std::string &key, const std::string &member, int64_t *res);
     int64_t SCard(const std::string &key);
+    int64_t SVolume(const std::string &key);   
     SIterator* SScan(const std::string &key, uint64_t limit, bool use_snapshot = false);
     Status SMembers(const std::string &key, std::vector<std::string> &vals);
     Status SUnionStore(const std::string &destination, const std::vector<std::string> &keys, int64_t *res);
@@ -197,8 +205,47 @@ public:
     Status SPop(const std::string &key, std::string &member);
     Status SRandMember(const std::string &key, std::vector<std::string> &members, const int count = 1);
     Status SMove(const std::string &source, const std::string &destination, const std::string &member, int64_t *res);
+    SmetaIterator * SmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot);
+
+/*
+    //===============rocksdb-cf=================
+    rocksdb::ColumnFamilyHandle* GetCFHandleByname(const std::string name);
+    Status CFWrite(rocksdb::WriteBatch *wb);
+    Status CFGet(rocksdb::ColumnFamilyHandle* cf_h,const std::string & key,std::string * value);
+ */
+
+    rocksdb::DBWithTTL * GetMetaHandle()
+    {
+        return meta_db_.get();
+    }
+
+    rocksdb::DBWithTTL * GetRaftHandle()
+    {
+        return raft_db_.get();
+    }
+
+    Status BatchWrite(rocksdb::DBWithTTL* db, rocksdb::WriteBatch *wb)
+    {
+        return db->WriteWithKeyTTL(rocksdb::WriteOptions(),wb,0);
+    }
+
+    Status GetWithHandle(rocksdb::DBWithTTL* db,const std::string & key,std::string * value )
+    {
+        return db->Get(rocksdb::ReadOptions(),key,value);
+    }
+
+
+    Status PutWithHandle(rocksdb::DBWithTTL* db,const std::string & key,const std::string & value )
+    {
+        return db->Put(rocksdb::WriteOptions(),key,value);
+    }
+
+    KIterator* KScanWithHandle(rocksdb::DBWithTTL* db,const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot = false);
+    Status KDelWithHandle(rocksdb::DBWithTTL* db,const std::string &key, int64_t *res);
 
     // ==============Server=====================
+
+
     Status BGSave(Snapshots &snapshots, const std::string &db_path = ""); 
     Status BGSaveGetSnapshot(Snapshots &snapshots);
     Status BGSaveSpecify(const std::string key_type, Snapshot* snapshot);
@@ -230,6 +277,13 @@ public:
     Status SChecknRecover(const std::string& key);
     Status ZChecknRecover(const std::string& key);
 
+    rocksdb::Iterator * NewHashDBIterator();
+
+    void HashCompactRange()
+    {
+        hash_db_->CompactRange(NULL, NULL);
+    }
+
 private:
 
     std::string db_path_;
@@ -240,6 +294,10 @@ private:
     std::unique_ptr<rocksdb::DBWithTTL> list_db_;
     std::unique_ptr<rocksdb::DBWithTTL> zset_db_;
     std::unique_ptr<rocksdb::DBWithTTL> set_db_;
+
+    std::unique_ptr<rocksdb::DBWithTTL> meta_db_;
+    std::unique_ptr<rocksdb::DBWithTTL> raft_db_;
+    //std::vector<rocksdb::ColumnFamilyHandle*> cf_handle_;
 
     port::RecordMutex mutex_hash_record_;
     port::RecordMutex mutex_kv_record_;
@@ -313,7 +371,7 @@ private:
     Status SeekCursor(int64_t cursor, std::string* start_key);
 
     int DoHSet(const std::string &key, const std::string &field, const std::string &val, rocksdb::WriteBatch &writebatch);
-    int DoHDel(const std::string &key, const std::string &field, rocksdb::WriteBatch &writebatch);
+    int64_t DoHDel(const std::string &key, const std::string &field, rocksdb::WriteBatch &writebatch);
     Status HSetNoLock(const std::string &key, const std::string &field, const std::string &val);
     int IncrHLen(const std::string &key, int64_t incr, rocksdb::WriteBatch &writebatch);
 
@@ -328,7 +386,7 @@ private:
 
     int IncrZLen(const std::string &key, int64_t incr, rocksdb::WriteBatch &writebatch);
 
-    int IncrSSize(const std::string &key, int64_t incr, rocksdb::WriteBatch &writebatch);
+    int IncrSSize(const std::string &key, int64_t incrCount, int64_t incrVol, rocksdb::WriteBatch &writebatch) ;
 
 
     Status SAddNoLock(const std::string &key, const std::string &member, int64_t *res);
@@ -366,6 +424,7 @@ private:
 
     std::tuple<int64_t, int64_t> BitOpGetSrcValue(const std::vector<std::string> &src_keys, std::vector<std::string> &src_values);
     std::string BitOpOperate(BitOpType op, const std::vector<std::string> &src_values, int64_t max_len, int64_t min_len);
+
 
 
     Nemo(const Nemo &rval);

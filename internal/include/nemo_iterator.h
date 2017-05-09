@@ -2,6 +2,8 @@
 #define NEMO_INCLUDE_NEMO_ITERATOR_H_
 #include "rocksdb/db.h"
 #include "nemo_const.h"
+#include "nemo_meta.h"
+
 
 namespace nemo {
 
@@ -155,6 +157,54 @@ private:
     //No Copying Allowed
     SIterator(SIterator&);
     void operator=(SIterator&);
+};
+
+class HmetaIterator : public Iterator{
+public:
+    HmetaIterator(rocksdb::Iterator *it, const IteratorOptions iter_options,const rocksdb::Slice &key);
+    virtual void Next();
+    virtual void Skip(int64_t offset);
+    virtual bool Valid();
+    std::string key()   { return key_; };
+    DefaultMeta value() { return meta_; };
+    void CheckAndLoadData();
+private:
+    HmetaIterator(HmetaIterator&);
+    void operator=(HmetaIterator&);
+    std::string key_;
+    HashMeta meta_;
+};
+
+class LmetaIterator : public Iterator{
+public:
+    LmetaIterator(rocksdb::Iterator *it, const IteratorOptions iter_options,const rocksdb::Slice &key);
+    virtual void Next();
+    virtual void Skip(int64_t offset);
+    virtual bool Valid();
+    std::string key()   { return key_; };
+    ListMeta value() { return meta_; };
+    void CheckAndLoadData();
+private:
+    LmetaIterator(LmetaIterator&);
+    void operator=(LmetaIterator&);
+    std::string key_;
+    ListMeta meta_;
+};
+
+class SmetaIterator : public Iterator{
+public:
+    SmetaIterator(rocksdb::Iterator *it, const IteratorOptions iter_options,const rocksdb::Slice &key);
+    virtual void Next();
+    virtual void Skip(int64_t offset);
+    virtual bool Valid();
+    std::string key()   { return key_; };
+    SetMeta value() { return meta_; };
+    void CheckAndLoadData();
+private:
+    SmetaIterator(SmetaIterator&);
+    void operator=(SmetaIterator&);
+    std::string key_;
+    SetMeta meta_;
 };
 
 }

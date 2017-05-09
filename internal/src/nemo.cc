@@ -76,6 +76,41 @@ Nemo::Nemo(const std::string &db_path, const Options &options)
 
    rocksdb::DBWithTTL *db_ttl;
 
+// kv with multi cf
+/*
+   open_options_.meta_prefix = rocksdb::kMetaPrefix_KV;
+   std::vector<rocksdb::ColumnFamilyDescriptor> column_families;
+   column_families.push_back(
+        rocksdb::ColumnFamilyDescriptor(rocksdb::kDefaultColumnFamilyName, rocksdb::ColumnFamilyOptions())
+   );
+
+   column_families.push_back(
+      rocksdb::ColumnFamilyDescriptor(
+          "raft_meta", rocksdb::ColumnFamilyOptions())
+   );
+
+   column_families.push_back(
+      rocksdb::ColumnFamilyDescriptor(
+          "raft_log", rocksdb::ColumnFamilyOptions())
+   );
+   std::vector<int32_t> ttls(3);
+   ttls[0] = 0;
+   ttls[1] = 0;
+   ttls[2] = 0;  
+
+   rocksdb::Status s = rocksdb::DBWithTTL::Open(open_options_, db_path_ + "kv",
+                                              column_families, &cf_handle_, &db_ttl,ttls);
+   if (!s.ok()) {
+     fprintf (stderr, "[FATAL] open kv db failed, %s\n", s.ToString().c_str());
+     exit(-1);
+   }
+
+
+
+   kv_db_ = std::unique_ptr<rocksdb::DBWithTTL>(db_ttl);
+*/
+
+
    open_options_.meta_prefix = rocksdb::kMetaPrefix_KV;
    rocksdb::Status s = rocksdb::DBWithTTL::Open(open_options_, db_path_ + "kv", &db_ttl);
    if (!s.ok()) {
@@ -116,12 +151,30 @@ Nemo::Nemo(const std::string &db_path, const Options &options)
    }
    set_db_ = std::unique_ptr<rocksdb::DBWithTTL>(db_ttl);
 
+   open_options_.meta_prefix = rocksdb::kMetaPrefix_META;
+   s = rocksdb::DBWithTTL::Open(open_options_, db_path_ + "meta", &db_ttl);
+   if (!s.ok()) {
+     fprintf (stderr, "[FATAL] open meta db failed, %s\n", s.ToString().c_str());
+     exit(-1);
+   }
+   meta_db_ = std::unique_ptr<rocksdb::DBWithTTL>(db_ttl);
+
+   open_options_.meta_prefix = rocksdb::kMetaPrefix_RAFT;
+   s = rocksdb::DBWithTTL::Open(open_options_, db_path_ + "raft", &db_ttl);
+   if (!s.ok()) {
+     fprintf (stderr, "[FATAL] open raft db failed, %s\n", s.ToString().c_str());
+     exit(-1);
+   }
+   raft_db_ = std::unique_ptr<rocksdb::DBWithTTL>(db_ttl);
+
    // Add separator of Meta and data
    hash_db_->Put(rocksdb::WriteOptions(), "h", "");
    list_db_->Put(rocksdb::WriteOptions(), "l", "");
    zset_db_->Put(rocksdb::WriteOptions(), "y", "");
    zset_db_->Put(rocksdb::WriteOptions(), "z", "");
    set_db_->Put(rocksdb::WriteOptions(), "s", "");
+   meta_db_->Put(rocksdb::WriteOptions(), "m", "");
+   raft_db_->Put(rocksdb::WriteOptions(), "r", "");
 
    // Start BGThread
    s = StartBGThread();
@@ -131,5 +184,24 @@ Nemo::Nemo(const std::string &db_path, const Options &options)
      exit(-1);
    }
 };
+
+/*
+rocksdb::ColumnFamilyHandle* Nemo::GetCFHandleByname(const std::string name){
+    if(name == "raft_meta"){
+      return cf_handle_[1];
+    }
+    else if(name == "raft_log"){
+      return cf_handle_[2];
+    }
+};
+
+rocksdb::Status Nemo::CFWrite(rocksdb::WriteBatch *wb){
+  return kv_db_->WriteWithKeyTTL(rocksdb::WriteOptions(),wb,0);
+};
+
+rocksdb::Status Nemo::CFGet(rocksdb::ColumnFamilyHandle* cf_h,const std::string & key,std::string * value){
+  return kv_db_->Get(rocksdb::ReadOptions(),cf_h,key,value);
+};
+*/
 
 }   // namespace nemo

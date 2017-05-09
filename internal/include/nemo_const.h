@@ -92,6 +92,11 @@ struct SM {
     std::string member;
 };
 
+struct KVT {
+    std::string key;
+    int64_t volume;
+    char kType;
+};
 
 namespace DataType {
     static const char kKv        = 'k';

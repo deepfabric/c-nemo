@@ -6,6 +6,7 @@
 #include "nemo_zset.h"
 #include "xdebug.h"
 
+
 nemo::Iterator::Iterator(rocksdb::Iterator *it, const IteratorOptions& iter_options)
   : it_(it),
     ioptions_(iter_options) {
@@ -146,6 +147,8 @@ void nemo::HIterator::Skip(int64_t offset) {
   CheckAndLoadData();
 }
 
+
+
 // ZSET
 nemo::ZIterator::ZIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key)
   : Iterator(it, iter_options) {
@@ -257,3 +260,112 @@ void nemo::SIterator::Skip(int64_t offset) {
   Iterator::Skip(offset);
   CheckAndLoadData();
 }
+
+// HASH meta key
+nemo::HmetaIterator::HmetaIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key)
+  : Iterator(it, iter_options) {
+    this->key_.assign(key.data(), key.size());      
+    CheckAndLoadData();
+  }
+
+// check valid and load field_, value_
+void nemo::HmetaIterator::CheckAndLoadData() {
+  if (valid_) {
+    rocksdb::Slice ks = Iterator::key();
+
+    if (ks[0] == DataType::kHSize) {
+      this->key_.assign(ks.data()+1,ks.size()-1);
+      std::string val(Iterator::value().data(),Iterator::value().size());
+      meta_.DecodeFrom(val);
+      return ;
+    }
+  }
+  valid_ = false;
+}
+
+bool nemo::HmetaIterator::Valid() {
+  return valid_;
+}
+
+void nemo::HmetaIterator::Next() {
+  Iterator::Next();
+  CheckAndLoadData();
+}
+
+void nemo::HmetaIterator::Skip(int64_t offset) {
+  Iterator::Skip(offset);
+  CheckAndLoadData();
+}
+
+// List meta key
+nemo::LmetaIterator::LmetaIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key)
+  : Iterator(it, iter_options) {
+    this->key_.assign(key.data(), key.size());      
+    CheckAndLoadData();
+  }
+
+// check valid and load list meta data
+void nemo::LmetaIterator::CheckAndLoadData() {
+  if (valid_) {
+    rocksdb::Slice ks = Iterator::key();
+
+    if (ks[0] == DataType::kLMeta) {
+      this->key_.assign(ks.data()+1,ks.size()-1);
+      std::string val(Iterator::value().data(),Iterator::value().size());
+      meta_.DecodeFrom(val);
+      return ;
+    }
+  }
+  valid_ = false;
+}
+
+bool nemo::LmetaIterator::Valid() {
+  return valid_;
+}
+
+void nemo::LmetaIterator::Next() {
+  Iterator::Next();
+  CheckAndLoadData();
+}
+
+void nemo::LmetaIterator::Skip(int64_t offset) {
+  Iterator::Skip(offset);
+  CheckAndLoadData();
+}
+
+// Set meta key
+nemo::SmetaIterator::SmetaIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key)
+  : Iterator(it, iter_options) {
+    this->key_.assign(key.data(), key.size());      
+    CheckAndLoadData();
+  }
+
+// check valid and load Set meta data
+void nemo::SmetaIterator::CheckAndLoadData() {
+  if (valid_) {
+    rocksdb::Slice ks = Iterator::key();
+
+    if (ks[0] == DataType::kSSize) {
+      this->key_.assign(ks.data()+1,ks.size()-1);
+      std::string val(Iterator::value().data(),Iterator::value().size());
+      meta_.DecodeFrom(val);
+      return ;
+    }
+  }
+  valid_ = false;
+}
+
+bool nemo::SmetaIterator::Valid() {
+  return valid_;
+}
+
+void nemo::SmetaIterator::Next() {
+  Iterator::Next();
+  CheckAndLoadData();
+}
+
+void nemo::SmetaIterator::Skip(int64_t offset) {
+  Iterator::Skip(offset);
+  CheckAndLoadData();
+}
+

@@ -10,19 +10,21 @@ using namespace nemo;
 
 //static int32_t ParseMeta(std::string &meta_val, ListMeta &meta) {
 bool ListMeta::DecodeFrom(const std::string &meta_val) {
-  if (meta_val.size() != sizeof(int64_t) * 4) {
+  if (meta_val.size() != sizeof(int64_t) * 5) {
     return false;
   }
 
   len = *((int64_t *)(meta_val.data()));
-  left = *((int64_t *)(meta_val.data() + sizeof(int64_t)));
-  right = *((int64_t *)(meta_val.data() + sizeof(int64_t) * 2));
-  cur_seq = *((int64_t *)(meta_val.data() + sizeof(int64_t) * 3));
+  vol = *((int64_t *)(meta_val.data() + sizeof(int64_t) ));  
+  left = *((int64_t *)(meta_val.data() + sizeof(int64_t)*2 ));
+  right = *((int64_t *)(meta_val.data() + sizeof(int64_t) * 3));
+  cur_seq = *((int64_t *)(meta_val.data() + sizeof(int64_t) * 4));
   return true;
 }
 bool ListMeta::EncodeTo(std::string& meta_val) {
   meta_val.clear();
   meta_val.append((char *)&len, sizeof(int64_t));
+  meta_val.append((char *)&vol, sizeof(int64_t));  
   meta_val.append((char *)&left, sizeof(int64_t));
   meta_val.append((char *)&right, sizeof(int64_t));
   meta_val.append((char *)&cur_seq, sizeof(int64_t));
@@ -32,6 +34,9 @@ std::string ListMeta::ToString() {
   char buf[32];
   std::string res("Len : ");
   Int64ToStr(buf, 32, len);
+  res.append(buf);
+  res.append(", Vol : ");
+  Int64ToStr(buf, 32, vol);
   res.append(buf);
   res.append(", Left : ");
   Int64ToStr(buf, 32, left);
@@ -62,6 +67,7 @@ Status Nemo::LChecknRecover(const std::string& key) {
   }
   // Traverse from head and find the break before point
   int count = 0;
+  int64_t volume = 0;
   int64_t next = meta.left, cur = 0;
   ListData cur_data;
   rocksdb::WriteBatch batch;
@@ -83,6 +89,7 @@ Status Nemo::LChecknRecover(const std::string& key) {
       batch.Put(cur_listkey, en_val);
     }
     ++count;
+    volume += key.size() + raw_val.size();
     cur_data.reset(cur, tmp_next, raw_val);
     cur = next;
     next = tmp_next;
@@ -105,6 +112,7 @@ Status Nemo::LChecknRecover(const std::string& key) {
 
     // Change Meta
     meta.len = count;
+    meta.vol = volume;
     meta.right = cur;
     std::string meta_val;
     meta.EncodeTo(meta_val);
@@ -265,6 +273,7 @@ Status Nemo::LPush(const std::string &key, const std::string &val, int64_t *llen
             batch.Put(db_key, en_val);
 
             meta.len++;
+            meta.vol += key.size() + val.size();
             meta.left = meta.cur_seq;
             if (meta.right == 0) {
                 meta.right = meta.cur_seq;
@@ -283,9 +292,9 @@ Status Nemo::LPush(const std::string &key, const std::string &val, int64_t *llen
             return Status::Corruption("parse listmeta error");
         }
     } else if (s.IsNotFound()) {
-        ListMeta meta(1, 1, 1, 2); // | len | left | right | cur_seq |
+        ListMeta meta(1, key.size() + val.size() ,1, 1, 2); // | len | vol | left | right | cur_seq |
         
-        meta_val.reserve(4 * sizeof(int64_t));
+        meta_val.reserve(5 * sizeof(int64_t));
         meta.EncodeTo(meta_val);
 
         batch.Put(meta_key, meta_val);
@@ -343,6 +352,7 @@ Status Nemo::LPop(const std::string &key, std::string *val) {
             }
 
             --meta.len;
+            meta.vol -= (key.size()+val->size());
             if (meta.len == 0) {
                 meta.right = 0;
                 meta.cur_seq = 1;
@@ -558,6 +568,7 @@ Status Nemo::LTrim(const std::string &key, const int64_t begin, const int64_t en
                     index_e = meta.len - 1;
                 }
                 int64_t trim_num = 0;
+                int64_t trim_vol = 0;
                 int64_t t_cur;
                 int64_t priv = 0;
                 int64_t next = 0;
@@ -571,6 +582,7 @@ Status Nemo::LTrim(const std::string &key, const int64_t begin, const int64_t en
                     batch.Delete(db_key);
                     t_cur = next;
                     trim_num++;
+                    trim_vol += key.size()+raw_val.size();
                 }
                 if (next != 0) {
                     meta.left = next;
@@ -595,6 +607,7 @@ Status Nemo::LTrim(const std::string &key, const int64_t begin, const int64_t en
                     batch.Delete(db_key);
                     t_cur = priv;
                     trim_num++;
+                    trim_vol += key.size()+raw_val.size();
                 }
                 if (priv != 0) {
                     meta.right = priv;
@@ -611,6 +624,7 @@ Status Nemo::LTrim(const std::string &key, const int64_t begin, const int64_t en
                 }
                 if (trim_num < meta.len) {
                     meta.len -= trim_num;
+                    meta.vol -= trim_vol;
                 } else {
                    meta = ListMeta(); 
                 }
@@ -671,6 +685,7 @@ Status Nemo::RPush(const std::string &key, const std::string &val, int64_t *llen
             batch.Put(db_key, en_val);
 
             meta.len++;
+            meta.vol += key.size() + val.size();
             if (meta.left == 0) {
               meta.left = meta.cur_seq;
             }
@@ -690,7 +705,7 @@ Status Nemo::RPush(const std::string &key, const std::string &val, int64_t *llen
             return Status::Corruption("parse listmeta error");
         }
     } else if (s.IsNotFound()) {
-        ListMeta meta(1, 1, 1, 2);
+        ListMeta meta(1, val.size() ,1, 1, 2);
         
         //std::string meta_val((char *)&meta, 4 * sizeof(int64_t));
         
@@ -751,6 +766,7 @@ Status Nemo::RPop(const std::string &key, std::string *val) {
             }
             
             --meta.len;
+            meta.vol -= (key.size()+ val->size());
             if (meta.len == 0) {
                 meta.left = 0;
                 meta.cur_seq = 1;
@@ -848,6 +864,7 @@ Status Nemo::RPopLPushInternal(const std::string &src, const std::string &dest, 
                 batch.Put(r_key, en_val);
             }
             --meta.len;
+            meta.vol -= (src.size()+val.size());
             if (meta.len == 0) { // change meta.left to 0 when no element
                 meta.left = 0;
             }
@@ -887,6 +904,7 @@ Status Nemo::RPopLPushInternal(const std::string &src, const std::string &dest, 
             EncodeListVal(val, 0, meta.left, en_val);
             batch.Put(db_key_l, en_val);
             meta.len++;
+            meta.vol += dest.size()+val.size();
             meta.left = meta.cur_seq;
             if (meta.right == 0) {
               meta.right = meta.cur_seq;
@@ -904,7 +922,7 @@ Status Nemo::RPopLPushInternal(const std::string &src, const std::string &dest, 
             return Status::Corruption("parse listmeta error");
         }
     } else if (s.IsNotFound()) {
-        ListMeta meta(1, 1, 1, 2);
+        ListMeta meta(1, val.size() , 1, 1, 2);
         std::string en_val;
         
         //std::string meta_str((char *)meta, 4 * sizeof(int64_t));
@@ -1006,6 +1024,7 @@ Status Nemo::LInsert(const std::string &key, Position pos, const std::string &pi
                 batch.Put(add_key, en_val);
 
                 meta.len++;
+                meta.vol += key.size()+ val.size();
                 if (before_seq == 0) {
                     meta.left = meta.cur_seq;
                 }
@@ -1120,6 +1139,7 @@ Status Nemo::LRem(const std::string &key, const int64_t count, const std::string
                 batch.Delete(cur_listkey);
 
                 meta.len--;
+                meta.vol -= (key.size()+val.size());
                 if (meta.len == 0) {
                   batch.Delete(meta_key);
                 } else {
@@ -1311,4 +1331,26 @@ Status Nemo::LExpireat(const std::string &key, const int32_t timestamp, int64_t 
     }
 
     return s;
+}
+
+LmetaIterator * Nemo::LmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot){
+    std::string key_start, key_end;
+    key_start = EncodeLMetaKey(start);
+    if (end.empty()) {
+        key_end = "";
+    } else {
+        key_end = EncodeLMetaKey(end);
+    }
+
+    rocksdb::ReadOptions read_options;
+    if (use_snapshot) {
+        read_options.snapshot = list_db_->GetSnapshot();
+    }
+    read_options.fill_cache = false;
+
+    IteratorOptions iter_options(key_end, limit, read_options);
+    
+    rocksdb::Iterator *it = list_db_->NewIterator(read_options);
+    it->Seek(key_start);
+    return new LmetaIterator(it,iter_options,start); 
 }
