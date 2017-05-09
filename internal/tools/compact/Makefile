@@ -8,8 +8,6 @@ LIBS = -Wl,-Bstatic -lnemo -lrocksdb\
 	   -Wl,-Bdynamic -lpthread\
 	   -lsnappy \
 	   -lrt \
-	   -lz \
-	   -lbz2
 
 INCLUDE_PATH = -I../../include/ \
 							 -I../../3rdparty/rocksdb/include
