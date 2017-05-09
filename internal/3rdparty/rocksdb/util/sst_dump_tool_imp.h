@@ -30,7 +30,7 @@
 #include "table/plain_table_factory.h"
 #include "util/ldb_cmd.h"
 #include "util/random.h"
-#include "util/testharness.h"
+//#include "util/testharness.h"
 #include "util/testutil.h"
 
 namespace rocksdb {
