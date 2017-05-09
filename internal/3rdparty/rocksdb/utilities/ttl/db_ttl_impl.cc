@@ -152,7 +152,7 @@ int32_t DBWithTTLImpl::GetTTLFromNow(const Slice& value, int32_t ttl, Env* env) 
 Status DBWithTTL::GetVersion(const Slice& key, int32_t *version) {
     // KV structure and data key of Hash, list, zset, set don't have version
     *version = 0;
-    if (db_->GetMetaPrefix() == kMetaPrefix_KV || db_->GetMetaPrefix() != key[0]) {
+    if (db_->GetMetaPrefix() == kMetaPrefix_KV || db_->GetMetaPrefix() == kMetaPrefix_META || db_->GetMetaPrefix() == kMetaPrefix_RAFT  || db_->GetMetaPrefix() != key[0]) {
       return Status::NotFound("Not meta key");
     }
 
@@ -195,7 +195,7 @@ Status DBWithTTL::GetKeyTTL(const ReadOptions& options, const Slice& key, int32_
     }
 
     // KV do not need version check
-    if (db_->GetMetaPrefix() == kMetaPrefix_KV) {
+    if (db_->GetMetaPrefix() == kMetaPrefix_KV ||db_->GetMetaPrefix() == kMetaPrefix_META ||db_->GetMetaPrefix() == kMetaPrefix_RAFT) {
       if (DBWithTTLImpl::IsStale(value, 1, db_->GetEnv())) {
         *ttl = -2;
         return Status::NotFound("Is Stale");
@@ -459,7 +459,7 @@ Status DBWithTTLImpl::Get(const ReadOptions& options,
   }
 
   // KV do not need version check
-  if (db_->GetMetaPrefix() == kMetaPrefix_KV) {
+  if (db_->GetMetaPrefix() == kMetaPrefix_KV ||db_->GetMetaPrefix() == kMetaPrefix_META ||db_->GetMetaPrefix() == kMetaPrefix_RAFT) {
     if (DBWithTTLImpl::IsStale(*value, 1, db_->GetEnv())) {
       *value = "";
       return Status::NotFound("Is Stale");
@@ -841,7 +841,9 @@ Iterator* DBWithTTLImpl::NewIterator(const ReadOptions& opts,
 
 bool TtlCompactionFilter::Filter(int level, const Slice& key, const Slice& old_val,
                                  std::string* new_val, bool* value_changed) const {
-  if (meta_prefix_ == kMetaPrefix_KV) {
+//  std::cout<<"TtlCompactionFilter::Filter key["<<key.ToString() <<"]value[" <<old_val.ToString()<<"]" <<std::endl;
+
+  if (meta_prefix_ == kMetaPrefix_KV ||meta_prefix_ == kMetaPrefix_META||meta_prefix_ == kMetaPrefix_RAFT) {
     if (DBWithTTLImpl::IsStale(old_val, 0, env_)) {
       return true;
     }

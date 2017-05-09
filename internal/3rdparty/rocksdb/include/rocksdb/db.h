@@ -66,6 +66,8 @@ const char kMetaPrefix_HASH = 'H';
 const char kMetaPrefix_ZSET = 'Z';
 const char kMetaPrefix_SET = 'S';
 const char kMetaPrefix_LIST = 'L';
+const char kMetaPrefix_META = '\0';
+const char kMetaPrefix_RAFT = '\0';
 
 // Abstract handle to particular state of a DB.
 // A Snapshot is an immutable object and can therefore be safely

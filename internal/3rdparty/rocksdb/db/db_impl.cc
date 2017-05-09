@@ -294,7 +294,7 @@ void DBImpl::GetKeyVersionAndTS(const Slice& key, int32_t *version, int32_t *tim
   *timestamp = 0;
 
   // KV do not have meta_prefix
-  if (meta_prefix_ == kMetaPrefix_KV) {
+  if (meta_prefix_ == kMetaPrefix_KV || meta_prefix_ == kMetaPrefix_META ||meta_prefix_ == kMetaPrefix_RAFT) {
     return;
   }
 

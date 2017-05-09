@@ -751,6 +751,8 @@ Status CompactionJob::ProcessKeyValueCompaction(int64_t* imm_micros,
           //    1) meta key;
           //    2) the separator of meta and data.
           if (meta_prefix != kMetaPrefix_KV 
+              && meta_prefix != kMetaPrefix_META
+              && meta_prefix != kMetaPrefix_RAFT
               && ikey.user_key[0] != meta_prefix && ikey.user_key.size() != 1) {
 
             // Get meta part of 

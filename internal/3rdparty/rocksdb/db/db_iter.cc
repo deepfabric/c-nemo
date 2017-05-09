@@ -252,7 +252,7 @@ void DBIter::FindNextUserEntryInternal(bool skipping) {
               Slice val(iter_->value().data(), iter_->value().size());
 
               // KV structure only check timestamp;
-              if (meta_prefix == kMetaPrefix_KV) {
+              if (meta_prefix == kMetaPrefix_KV || meta_prefix == kMetaPrefix_META|| meta_prefix == kMetaPrefix_RAFT ) {
                 int32_t timestamp_value = DecodeFixed32(val.data() + val.size() - DBImpl::kTSLength);
                 if (timestamp_value != 0) {
                   int64_t curtime;
