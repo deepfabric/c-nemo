@@ -395,7 +395,7 @@ KIterator* Nemo::KScanWithHandle(rocksdb::DBWithTTL * db,const std::string &star
     }
     rocksdb::ReadOptions read_options;
     if (use_snapshot) {
-        read_options.snapshot = kv_db_->GetSnapshot();
+        read_options.snapshot = db->GetSnapshot();
     }
     read_options.fill_cache = false;
 
