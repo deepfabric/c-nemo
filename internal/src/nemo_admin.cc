@@ -17,6 +17,8 @@
 #include "util.h"
 #include "xdebug.h"
 
+#include <iostream>
+
 using namespace nemo;
 
 const std::string DEFAULT_BG_PATH = "dump";
@@ -805,4 +807,127 @@ Status Nemo::GetUsage(const std::string& type, uint64_t *result) {
   }
 
   return Status::OK();
+}
+
+void Nemo::RawScanSave(const DBType type,const std::string &start, const std::string &end, bool use_snapshot) {
+    std::string en_start,en_end;
+    rocksdb::Iterator *it;
+    rocksdb::ReadOptions read_options;
+
+    switch(type){
+      case kHASH_DB:
+        en_start = EncodeHsizeKey(rocksdb::Slice(start.data(),start.size()));
+        if (end.empty()) {
+            en_end = "";
+        } else {
+            en_end = EncodeHsizeKey(rocksdb::Slice(end.data(),end.size()));
+        }
+        read_options.snapshot = hash_db_->GetSnapshot();
+        read_options.fill_cache = false;
+        it = hash_db_->NewRawIterator(read_options);
+        break;
+/*        
+      case kLIST_DB:
+        break;          
+      case kZSET_DB:
+        break;          
+      case kSET_DB:
+        break;
+      case kKV_DB:
+        break;              
+      case kMeta_DB:
+        break;          
+      case kRaft_DB: 
+        break;          
+        */
+    }
+    
+    std::string raw_key;
+    std::string raw_val;
+    it->Seek(en_start);
+    int32_t version;
+    int32_t timestamp;
+    for(int i=0;it->Valid();it->Next(),i++){
+
+        std::string meta_key;
+        std::string sub_start_key;
+        rocksdb::Iterator* sub_it;
+        switch(type){
+          case kHASH_DB:
+          {
+            raw_key.clear();
+            raw_key.append(it->key().data(),it->key().size());
+            raw_val.clear();            
+            raw_val.append(it->value().data(),it->value().size());
+
+            if(!en_end.empty()){
+              if(raw_key > en_end){
+                break;
+              }
+            }         
+            if(raw_key[0]!= DataType::kHSize ){
+              break;
+            }
+
+            version = *(int32_t *)(raw_val.data()+raw_val.size()-sizeof(int32_t)- sizeof(int32_t));
+            timestamp = *(int32_t *)(raw_val.data()+raw_val.size()-sizeof(int32_t));
+            raw_val.erase(raw_val.length()-sizeof(int32_t)-sizeof(int32_t),sizeof(int32_t)+sizeof(int32_t));     
+            std::cout<< "loops " << i <<" :" <<"raw_key:"<< raw_key
+                    << " value.len:" << raw_val.size()
+                    << " version:" << version
+                    << " timestamp"<< timestamp
+                    << std::endl;
+            std::string dbkey,dbfield;
+            meta_key.clear();
+            meta_key.append(raw_key.data()+1,raw_key.size()-1);
+            sub_start_key = EncodeHashKey(meta_key,"");
+            sub_it = hash_db_->NewRawIterator(read_options);
+            sub_it->Seek(sub_start_key);
+            while (sub_it->Valid()) {
+              if ((sub_it->key())[0] != DataType::kHash) {
+                  break;
+              }
+              DecodeHashKey(sub_it->key(), &dbkey, &dbfield);
+              if(dbkey != meta_key) {
+                break;
+              } 
+              raw_key.clear();
+              raw_val.clear();
+              raw_key.append(sub_it->key().data(),sub_it->key().size());
+              raw_val.append(sub_it->value().data(),sub_it->value().size());                  
+              version = *(int32_t *)(raw_val.data()+raw_val.size()-sizeof(int32_t)- sizeof(int32_t));
+              timestamp = *(int32_t *)(raw_val.data()+raw_val.size()-sizeof(int32_t));
+              raw_val.erase(raw_val.length()-sizeof(int32_t)-sizeof(int32_t),sizeof(int32_t)+sizeof(int32_t));                
+              std::cout <<"dbkey:" << dbkey
+                        << " dbfield:" << dbfield 
+                        << " val:" << raw_val
+                        << " version:" << version
+                        << " timestamp"<< timestamp
+                        << std::endl;              
+              sub_it->Next();
+            }
+            delete sub_it;
+            break;
+          }
+        }
+    }
+
+    switch(type){
+      case kHASH_DB:
+        hash_db_->ReleaseSnapshot(read_options.snapshot);
+        break;          
+      case kLIST_DB:
+        break;          
+      case kZSET_DB:
+        break;          
+      case kSET_DB:
+        break;       
+      case kKV_DB:
+        break;           
+      case kMeta_DB:
+        break;          
+      case kRaft_DB: 
+        break;          
+    }
+    delete it;
 }

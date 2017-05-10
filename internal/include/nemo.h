@@ -224,6 +224,11 @@ public:
         return raft_db_.get();
     }
 
+    Status FlushWithHandle(rocksdb::DBWithTTL * db)
+    {
+        return db->Flush(rocksdb::FlushOptions());
+    }
+
     Status BatchWrite(rocksdb::DBWithTTL* db, rocksdb::WriteBatch *wb)
     {
         return db->WriteWithKeyTTL(rocksdb::WriteOptions(),wb,0);
@@ -242,6 +247,8 @@ public:
 
     KIterator* KScanWithHandle(rocksdb::DBWithTTL* db,const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot = false);
     Status KDelWithHandle(rocksdb::DBWithTTL* db,const std::string &key, int64_t *res);
+
+    void RawScanSave(const DBType type,const std::string &start, const std::string &end, bool use_snapshot);
 
     // ==============Server=====================
 

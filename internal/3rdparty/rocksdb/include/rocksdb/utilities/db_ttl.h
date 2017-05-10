@@ -73,7 +73,13 @@ class DBWithTTL : public StackableDB {
   Status WriteWithKeyVersion(const WriteOptions& opts, WriteBatch* updates, int32_t version = 0);
   Status PutWithExpiredTime(const WriteOptions& options, const Slice& key, const Slice& val, int32_t expired_time);
   Status WriteWithExpiredTime(const WriteOptions& opts, WriteBatch* updates, int32_t expired_time);
-
+  Iterator * NewRawIterator(const ReadOptions& opts){
+      return NewRawIterator(opts,DefaultColumnFamily());
+  }
+  Iterator * NewRawIterator(const ReadOptions& opts,ColumnFamilyHandle* column_family)
+  {
+      return db_->NewIterator(opts,column_family);
+  }
   static const uint32_t kTSLength = sizeof(int32_t);  // size of timestamp
   static const uint32_t kVersionLength = sizeof(int32_t);  // size of key version
 

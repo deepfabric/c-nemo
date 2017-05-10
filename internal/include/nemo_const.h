@@ -24,6 +24,8 @@ enum DBType {
   kLIST_DB,
   kZSET_DB,
   kSET_DB,
+  kMeta_DB,
+  kRaft_DB,
   kALL
 };
 

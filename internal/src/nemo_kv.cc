@@ -8,6 +8,7 @@
 #include "nemo_iterator.h"
 #include "util.h"
 #include "xdebug.h"
+#include <iostream>
 
 using namespace nemo;
 
@@ -385,6 +386,8 @@ KIterator* Nemo::KScan(const std::string &start, const std::string &end, uint64_
 
     return new KIterator(it, iter_options); 
 }
+
+
 
 KIterator* Nemo::KScanWithHandle(rocksdb::DBWithTTL * db,const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot) {
     std::string key_end;

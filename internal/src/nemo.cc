@@ -173,8 +173,6 @@ Nemo::Nemo(const std::string &db_path, const Options &options)
    zset_db_->Put(rocksdb::WriteOptions(), "y", "");
    zset_db_->Put(rocksdb::WriteOptions(), "z", "");
    set_db_->Put(rocksdb::WriteOptions(), "s", "");
-   meta_db_->Put(rocksdb::WriteOptions(), "m", "");
-   raft_db_->Put(rocksdb::WriteOptions(), "r", "");
 
    // Start BGThread
    s = StartBGThread();

@@ -24,21 +24,7 @@ int main()
     Status s;
 
     std::string res;
-    /*
-     *************************************************KV**************************************************
-     */
-    /*
-     *  Test Internal Hash Skip
-     */
-/*     
-    log_info("======Test Set======");
-    s = n->Set("H0", "h0");
-    assert(s.ok());
-    s = n->Set("H2", "hk");
-    assert(s.ok());    
-    s = n->Set("H4", "hk");
-    assert(s.ok());
-*/
+/*
     rocksdb::DBWithTTL * d1 = n->GetMetaHandle();
     rocksdb::DBWithTTL * d2 = n->GetRaftHandle();
 
@@ -61,35 +47,87 @@ int main()
 
     s = n->GetWithHandle(d1,"key2",&res);
     assert(s.ok());
-    assert( res == "value2");    
+    assert( res == "value2");
 
-    KIterator * it = n->KScanWithHandle(d1,"A","x",100,false);
+    s = n->GetWithHandle(d1,"put",&res);
+    assert(s.ok());
+*/
+
+/*
+    std::cout<< "GetWithHandle after new nemo, res:" << res << std::endl;
+    std::cout<< "Kscan with handle:"<< std::endl;
+    KIterator * it = n->KScanWithHandle(d1,"A","x",100,true);
     for(int i=0;it->Valid();it->Next(),i++){
         std::cout<<"iterator loops "<< i <<"key:"<< it->key()
                 <<",value:" << it->value()
                 <<std::endl;
-    } 
+    }
     delete it;
-
-//    s = n->Set("H2", "hk");
-//    assert(s.ok());
+*/
 /*
+    std::cout<< "Volume Scan:"<< std::endl;
+    VolumeIterator * vit = new VolumeIterator(n,"A","x",100,true);
+    for(int i=0;vit->Valid();vit->Next(),i++){
+        std::cout<<"iterator loops "<< i <<"key:"<< vit->key()
+                <<",value:" << vit->value()
+                <<std::endl;
+    }
+    delete vit;
+*/
+
+/*
+    std::cout<< "redis kV Scan:"<< std::endl;
+    KIterator* kit = n->KScan("A","x",100,true);
+    for(int i=0;kit->Valid();kit->Next(),i++){
+        std::cout<<"iterator loops "<< i <<"key:"<< kit->key()
+                <<",value:" << kit->value()
+                <<std::endl;
+    }
+    delete kit;
+*/
+    log_info("======KV Set======");
+    s = n->Set("H0", "h0");
+    assert(s.ok());
+    s = n->Set("H2", "hk",123);
+    assert(s.ok());    
+    s = n->Set("H4", "hk",4123);
+    assert(s.ok());
+
     log_info("======Test HSet======");
     s = n->HSet("H1", "h1", "h1");
     assert(s.ok());
-    s = n->HSet("H2", "h1", "h1");
+
+    s = n->HSet("H2", "h2", "h2");
     assert(s.ok());     
 
-    s = n->HSet("H2", "h2", "h2");
-    assert(s.ok());
-    s = n->HSet("H2", "h2", "h2");
-    assert(s.ok());
-
-    s = n->HDel("H2", "h2");
-    assert(s.ok());
-
-    s = n->HSet("H3", "h1", "h1");
+    s = n->HSet("H2", "hello", "world");
     assert(s.ok()); 
+
+    s = n->HSet("H2", "h1", "h1");
+    assert(s.ok());
+    s = n->HDel("H2", "h1");
+    assert(s.ok());
+
+    int64_t count;
+    s = n->Del("H1",&count);
+    s = n->HSet("H1", "h1", "h1");
+    assert(s.ok());
+
+    s = n->HSet("H3", "h3", "h3");
+    assert(s.ok()); 
+    int64_t ts = 0;
+    s = n->Expireat("H3",2147483000,&ts);
+    assert(s.ok()); 
+    log_info("Expireat at timestamp:%d",ts);
+    log_info("");
+
+    s = n->TTL("H3",&ts);    
+    assert(s.ok()); 
+    log_info("H3 TTL:%d",ts);
+    log_info("");   
+    n->RawScanSave(kHASH_DB,"A","x",true);
+
+ /*   
 
     s = n->Get("H2",&res);
     std::cout<<"Get H2 res: " <<s.ToString()<<std::endl;
@@ -121,19 +159,14 @@ int main()
                 <<std::endl;
     } 
 */
+/*
     s = RangeDelWithHandle(n,d1,"A","x",100);
     assert(s.ok()); 
 
     s = n->GetWithHandle(d1,"put",&res);
     assert(s.IsNotFound());
-/*
-    it = n->KScanWithHandle(d1,"","X",100,true);
-    for(int i=0;it->Valid();it->Next(),i++){
-        std::cout<<"iterator loops "<< i <<"key:"<< it->key()
-                <<",value:" << it->value()
-                <<std::endl;
-    } 
 */
+
     delete n;
     return 0;
 }
