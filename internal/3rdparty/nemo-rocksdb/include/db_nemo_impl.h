@@ -219,11 +219,21 @@ class NemoIterator : public Iterator {
                          DBNemoImpl::kTSLength);
   }
 
+  int32_t version() const {
+    return DecodeFixed32(iter_->value().data() + iter_->value().size() -
+                         DBNemoImpl::kTSLength - DBNemoImpl::kVersionLength);
+  }
+
   Slice value() const override {
     // TODO: handle timestamp corruption like in general iterator semantics
     Slice trimmed_value = iter_->value();
     trimmed_value.size_ -= (DBNemoImpl::kVersionLength + DBNemoImpl::kTSLength);
     return trimmed_value;
+  }
+
+  Slice raw_value() const {
+    // return raw value with verion and timestamp
+    return iter_->value();
   }
 
   Status status() const override { return iter_->status(); }

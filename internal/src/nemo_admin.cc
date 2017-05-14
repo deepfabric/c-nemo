@@ -16,6 +16,11 @@
 #include "nemo_list.h"
 #include "util.h"
 #include "xdebug.h"
+#include "rocksdb/sst_file_writer.h"
+#include <algorithm>
+#include <vector>
+
+#include <iostream>
 
 using namespace nemo;
 
@@ -806,6 +811,649 @@ Status Nemo::GetUsage(const std::string& type, uint64_t *result) {
   if (type == USAGE_TYPE_ALL || type == USAGE_TYPE_NEMO) {
     *result += GetLockUsage(); 
   }
+
+  return Status::OK();
+}
+
+inline bool lex_less(std::string * s1, std::string * s2)
+{
+  return *s1 < *s2;
+}
+
+Status Nemo::KvRawScanSave(const std::string path,const std::string &start, const std::string &end, bool use_snapshot) {
+    std::string en_start,en_end;
+    rocksdb::Iterator* it = nullptr;
+    rocksdb::ReadOptions read_options;
+    rocksdb::Options opts;
+    rocksdb::SstFileWriter f(rocksdb::EnvOptions(),opts,opts.comparator);
+    mkpath(path.c_str(), 0755);
+    Status s = f.Open(path+"/kv.sst");
+    if(!s.ok()){
+      return s;
+    }
+    // need some init argment to set the size
+    if (end.empty()) {
+        en_end = "";
+    }
+    read_options.snapshot = kv_db_->GetSnapshot();
+    read_options.fill_cache = false;
+    it = kv_db_->NewIterator(read_options);
+
+    std::string raw_key;
+    it->Seek(en_start);
+    for(int i=0;it->Valid();it->Next(),i++){
+        raw_key.clear();
+        raw_key.append(it->key().data(),it->key().size());
+        if(!en_end.empty()){
+          if(raw_key > en_end){
+            break;
+          }
+        }
+        s = f.Add(it->key(),(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
+        if(!s.ok()){
+          kv_db_->ReleaseSnapshot(read_options.snapshot);   
+          delete it;
+          return s;
+        }
+    }
+    delete it;
+    kv_db_->ReleaseSnapshot(read_options.snapshot);
+    s = f.Finish();
+    return s;
+}
+
+Status Nemo::HashRawScanSave(const std::string path,const std::string &start, const std::string &end, bool use_snapshot) {
+    std::string en_start,en_end;
+    rocksdb::Iterator* it = nullptr;
+    rocksdb::ReadOptions read_options;
+    rocksdb::Options opts;
+    rocksdb::SstFileWriter f(rocksdb::EnvOptions(),opts,opts.comparator);
+    mkpath(path.c_str(), 0755);
+    Status s = f.Open(path+"/hash.sst");
+    if(!s.ok()){
+      return s;
+    }
+    // need some init argment to set the size
+    std::vector<std::string *> * sort_key_set = new std::vector<std::string *>;
+    std::string * sort_key;
+
+    en_start = EncodeHsizeKey(rocksdb::Slice(start.data(),start.size()));
+    if (end.empty()) {
+        en_end = "";
+    } else {
+        en_end = EncodeHsizeKey(rocksdb::Slice(end.data(),end.size()));
+    }
+    read_options.snapshot = hash_db_->GetSnapshot();
+    read_options.fill_cache = false;
+    it = hash_db_->NewIterator(read_options);
+
+    std::string raw_key;
+    it->Seek(en_start);
+    for(int i=0;it->Valid();it->Next(),i++){
+        raw_key.clear();
+        raw_key.append(it->key().data(),it->key().size());
+
+        if(!en_end.empty()){
+          if(raw_key > en_end){
+            break;
+          }
+        }         
+        if(raw_key[0]!= DataType::kHSize ){
+          break;
+        }
+        s = f.Add(it->key(),(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
+        if(!s.ok()){
+          hash_db_->ReleaseSnapshot(read_options.snapshot);   
+          delete it;
+          return s;
+        }
+        sort_key = new std::string;
+        sort_key->append(1,it->key().size()-1);
+        sort_key->append(it->key().data()+1,it->key().size()-1);
+        sort_key_set->push_back(sort_key);
+    }
+    delete it;
+    std::sort(sort_key_set->begin(),sort_key_set->end(),lex_less);
+    for(size_t i = 0;i< sort_key_set->size();i++)
+    {
+        std::string meta_key;
+        std::string sub_start_key;       
+        std::string dbkey,dbfield;
+        rocksdb::Iterator* sub_it =nullptr;       
+        meta_key.clear();
+        meta_key.assign((*sort_key_set)[i]->data()+1,(*sort_key_set)[i]->size()-1);
+        sub_start_key = EncodeHashKey(meta_key,"");
+        sub_it = hash_db_->NewIterator(read_options);
+        sub_it->Seek(sub_start_key);
+        while (sub_it->Valid()) {
+          if ((sub_it->key())[0] != DataType::kHash) {
+              break;
+          }
+          DecodeHashKey(sub_it->key(), &dbkey, &dbfield);
+          if(dbkey != meta_key) {
+            break;
+          }
+          s = f.Add(sub_it->key(),(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
+          if(!s.ok()){
+            hash_db_->ReleaseSnapshot(read_options.snapshot);
+            delete sub_it;                    
+            return s;
+          }                            
+          sub_it->Next();
+        }
+        delete sub_it;
+        delete (*sort_key_set)[i];
+    }
+    hash_db_->ReleaseSnapshot(read_options.snapshot);
+    delete sort_key_set;
+    s = f.Finish();
+    return s;
+}
+
+void Nemo::HashRawScan(const std::string &start, const std::string &end, bool use_snapshot) {
+    std::string en_start,en_end;
+    rocksdb::Iterator* it = nullptr;
+    rocksdb::ReadOptions read_options;
+    rocksdb::Options opts;
+    // need some init argment to set the size
+    std::vector<std::string *> * sort_key_set = new std::vector<std::string *>;
+    std::string * sort_key;
+
+    en_start = EncodeHsizeKey(rocksdb::Slice(start.data(),start.size()));
+    if (end.empty()) {
+        en_end = "";
+    } else {
+        en_end = EncodeHsizeKey(rocksdb::Slice(end.data(),end.size()));
+    }
+    read_options.snapshot = hash_db_->GetSnapshot();
+    read_options.fill_cache = false;
+    it = hash_db_->NewIterator(read_options);
+
+    std::string raw_key;
+    it->Seek(en_start);
+    for(int i=0;it->Valid();it->Next(),i++){
+        raw_key.clear();
+        raw_key.append(it->key().data(),it->key().size());
+
+        if(!en_end.empty()){
+          if(raw_key > en_end){
+            break;
+          }
+        }         
+        if(raw_key[0]!= DataType::kLMeta ){
+          break;
+        }
+        std::cout<< "scan meta key " << i <<" :" <<"raw_key:"<< raw_key
+                << " value.len:" << (dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value().size()
+                << " version:" << (dynamic_cast<rocksdb::NemoIterator *>(it))->version()
+                << " timestamp"<< (dynamic_cast<rocksdb::NemoIterator *>(it))->timestamp()
+                << std::endl;
+        sort_key = new std::string;
+        sort_key->append(1,it->key().size()-1);
+        sort_key->append(it->key().data()+1,it->key().size()-1);
+        sort_key_set->push_back(sort_key);
+    }
+    delete it;
+  
+    std::sort(sort_key_set->begin(),sort_key_set->end(),lex_less);
+    for(size_t i = 0;i< sort_key_set->size();i++)
+    {
+        std::string meta_key;
+        std::string sub_start_key;       
+        std::string dbkey,dbfield;
+        rocksdb::Iterator* sub_it =nullptr;       
+        meta_key.clear();
+        meta_key.append((*sort_key_set)[i]->data()+1,(*sort_key_set)[i]->size()-1);
+        sub_start_key = EncodeHashKey(meta_key,"");
+        sub_it = hash_db_->NewIterator(read_options);
+        std::cout <<"scan hash table:" << i <<" meta key:" << meta_key << std::endl; 
+        sub_it->Seek(sub_start_key);
+        while (sub_it->Valid()) {
+          if ((sub_it->key())[0] != DataType::kHash) {
+              break;
+          }
+          DecodeHashKey(sub_it->key(), &dbkey, &dbfield);
+          if(dbkey != meta_key) {
+            break;
+          }
+          std::cout <<"dbkey:" << dbkey
+                    << " dbfield:" << dbfield 
+                    << " val:" <<  sub_it->value().ToString()
+                    << " version:" << (dynamic_cast<rocksdb::NemoIterator *>(sub_it))->version()
+                    << " timestamp"<< (dynamic_cast<rocksdb::NemoIterator *>(sub_it))->timestamp()
+                    << std::endl;
+
+          sub_it->Next();
+        }
+        delete sub_it;
+        delete (*sort_key_set)[i];
+    }
+
+    hash_db_->ReleaseSnapshot(read_options.snapshot);
+    
+    delete sort_key_set;
+}
+
+Status Nemo::ListRawScanSave(const std::string path,const std::string &start, const std::string &end, bool use_snapshot) {
+    std::string en_start,en_end;
+    rocksdb::Iterator* it = nullptr;
+    rocksdb::ReadOptions read_options;
+    rocksdb::Options opts;
+    rocksdb::SstFileWriter f(rocksdb::EnvOptions(),opts,opts.comparator);
+    mkpath(path.c_str(), 0755);
+    Status s = f.Open(path+"/list.sst");
+    if(!s.ok()){
+      return s;
+    }
+    // need some init argment to set the size
+    std::vector<std::string *> * sort_key_set = new std::vector<std::string *>;
+    std::string * sort_key;
+
+    en_start = EncodeLMetaKey(rocksdb::Slice(start.data(),start.size()));
+    if (end.empty()) {
+        en_end = "";
+    } else {
+        en_end = EncodeLMetaKey(rocksdb::Slice(end.data(),end.size()));
+    }
+    read_options.snapshot = list_db_->GetSnapshot();
+    read_options.fill_cache = false;
+    it = list_db_->NewIterator(read_options);
+
+    std::string raw_key;
+    it->Seek(en_start);
+    for(int i=0;it->Valid();it->Next(),i++){
+        raw_key.clear();
+        raw_key.append(it->key().data(),it->key().size());
+        if(!en_end.empty()){
+          if(raw_key > en_end){
+            break;
+          }
+        }         
+        if(raw_key[0]!= DataType::kLMeta ){
+          break;
+        }
+        s = f.Add(it->key(),(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
+        if(!s.ok()){
+          list_db_->ReleaseSnapshot(read_options.snapshot);   
+          delete it;
+          return s;
+        }
+        sort_key = new std::string;
+        sort_key->append(1,it->key().size()-1);
+        sort_key->append(it->key().data()+1,it->key().size()-1);
+        sort_key_set->push_back(sort_key);
+    }
+    delete it;
+    std::sort(sort_key_set->begin(),sort_key_set->end(),lex_less);
+    std::string sub_start_key,sub_key;
+    for(size_t i = 0;i< sort_key_set->size();i++)
+    {
+        rocksdb::Iterator* sub_it =nullptr;
+
+        sub_start_key.clear();
+        sub_start_key.append(1,DataType::kList);
+        sub_start_key.append((*sort_key_set)[i]->data(),(*sort_key_set)[i]->size());
+
+        sub_it = list_db_->NewIterator(read_options);
+        sub_it->Seek(sub_start_key);
+        while (sub_it->Valid()) {
+          if ((sub_it->key())[0] != DataType::kList) {
+              break;
+          }
+          sub_key.clear();
+          sub_key.assign(sub_it->key().data(),sub_it->key().size()-sizeof(int64_t));
+          if(sub_key != sub_start_key) {
+            break;
+          }
+          s = f.Add(sub_it->key(),(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
+          if(!s.ok()){
+            list_db_->ReleaseSnapshot(read_options.snapshot);
+            delete sub_it;                    
+            return s;
+          }                            
+          sub_it->Next();
+        }
+        delete sub_it;
+        delete (*sort_key_set)[i];
+    }
+    list_db_->ReleaseSnapshot(read_options.snapshot);
+    delete sort_key_set;
+    s = f.Finish();
+    return s;
+}
+
+Status Nemo::SetRawScanSave(const std::string path,const std::string &start, const std::string &end, bool use_snapshot) {
+    std::string en_start,en_end;
+    rocksdb::Iterator* it = nullptr;
+    rocksdb::ReadOptions read_options;
+    rocksdb::Options opts;
+    rocksdb::SstFileWriter f(rocksdb::EnvOptions(),opts,opts.comparator);
+    mkpath(path.c_str(), 0755);
+    Status s = f.Open(path+"/set.sst");
+    if(!s.ok()){
+      return s;
+    }
+    // need some init argment to set the size
+    std::vector<std::string *> * sort_key_set = new std::vector<std::string *>;
+    std::string * sort_key;
+
+    en_start = EncodeSSizeKey(rocksdb::Slice(start.data(),start.size()));
+    if (end.empty()) {
+        en_end = "";
+    } else {
+        en_end = EncodeSSizeKey(rocksdb::Slice(end.data(),end.size()));
+    }
+    read_options.snapshot = set_db_->GetSnapshot();
+    read_options.fill_cache = false;
+    it = set_db_->NewIterator(read_options);
+
+    std::string raw_key;
+    it->Seek(en_start);
+    for(int i=0;it->Valid();it->Next(),i++){
+        raw_key.clear();
+        raw_key.append(it->key().data(),it->key().size());
+        if(!en_end.empty()){
+          if(raw_key > en_end){
+            break;
+          }
+        }         
+        if(raw_key[0]!= DataType::kSSize ){
+          break;
+        }
+        s = f.Add(it->key(),(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
+        if(!s.ok()){
+          set_db_->ReleaseSnapshot(read_options.snapshot);   
+          delete it;
+          return s;
+        }
+        sort_key = new std::string;
+        sort_key->append(1,it->key().size()-1);
+        sort_key->append(it->key().data()+1,it->key().size()-1);
+        sort_key_set->push_back(sort_key);
+    }
+    delete it;
+    std::sort(sort_key_set->begin(),sort_key_set->end(),lex_less);
+    std::string sub_start_key,sub_key,member,meta_key;
+    for(size_t i = 0;i< sort_key_set->size();i++)
+    {
+        rocksdb::Iterator* sub_it =nullptr; 
+        sub_start_key.clear();
+        sub_start_key.append(1,DataType::kSet);
+        sub_start_key.append((*sort_key_set)[i]->data(),(*sort_key_set)[i]->size());
+
+        meta_key.assign((*sort_key_set)[i]->data()+1,(*sort_key_set)[i]->size()-1);
+
+        sub_it = set_db_->NewIterator(read_options);
+        sub_it->Seek(sub_start_key);
+        while (sub_it->Valid()) {
+          if ((sub_it->key())[0] != DataType::kSet) {
+              break;
+          }
+          DecodeSetKey(sub_it->key(),&sub_key,&member);
+          if(sub_key != meta_key) {
+            break;
+          }
+          s = f.Add(sub_it->key(),(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
+          if(!s.ok()){
+            set_db_->ReleaseSnapshot(read_options.snapshot);
+            delete sub_it;                    
+            return s;
+          }                            
+          sub_it->Next();
+        }
+        delete sub_it;
+        delete (*sort_key_set)[i];
+    }
+    set_db_->ReleaseSnapshot(read_options.snapshot);
+    delete sort_key_set;
+    s = f.Finish();
+    return s;
+}
+
+Status Nemo::ZsetRawScanSave(const std::string path,const std::string &start, const std::string &end, bool use_snapshot) {
+    std::string en_start,en_end;
+    rocksdb::Iterator* it = nullptr;
+    rocksdb::ReadOptions read_options;
+    rocksdb::Options opts;
+    rocksdb::SstFileWriter f(rocksdb::EnvOptions(),opts,opts.comparator);
+    mkpath(path.c_str(), 0755);
+    Status s = f.Open(path+"/zset.sst");
+    if(!s.ok()){
+      return s;
+    }
+    // need some init argment to set the size
+    std::vector<std::string *> * sort_key_set = new std::vector<std::string *>;
+    std::string * sort_key;
+
+    en_start = EncodeZSizeKey(rocksdb::Slice(start.data(),start.size()));
+    if (end.empty()) {
+        en_end = "";
+    } else {
+        en_end = EncodeZSizeKey(rocksdb::Slice(end.data(),end.size()));
+    }
+    read_options.snapshot = zset_db_->GetSnapshot();
+    read_options.fill_cache = false;
+    it = zset_db_->NewIterator(read_options);
+
+    std::string raw_key;
+    it->Seek(en_start);
+    for(int i=0;it->Valid();it->Next(),i++){
+        raw_key.clear();
+        raw_key.append(it->key().data(),it->key().size());
+        if(!en_end.empty()){
+          if(raw_key > en_end){
+            break;
+          }
+        }         
+        if(raw_key[0]!= DataType::kZSize ){
+          break;
+        }
+        s = f.Add(it->key(),(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
+        if(!s.ok()){
+          zset_db_->ReleaseSnapshot(read_options.snapshot);   
+          delete it;
+          return s;
+        }
+        sort_key = new std::string;
+        sort_key->append(1,it->key().size()-1);
+        sort_key->append(it->key().data()+1,it->key().size()-1);
+        sort_key_set->push_back(sort_key);
+    }
+    delete it;
+    std::sort(sort_key_set->begin(),sort_key_set->end(),lex_less);
+    std::string sub_start_key,sub_key,member,meta_key;
+    double score;
+    for(size_t i = 0;i< sort_key_set->size();i++)
+    {
+        rocksdb::Iterator* sub_it =nullptr; 
+        sub_start_key.clear();
+        sub_start_key.append(1,DataType::kZScore);
+        sub_start_key.append((*sort_key_set)[i]->data(),(*sort_key_set)[i]->size());
+
+        meta_key.assign((*sort_key_set)[i]->data()+1,(*sort_key_set)[i]->size()-1);
+
+        sub_it = zset_db_->NewIterator(read_options);
+        sub_it->Seek(sub_start_key);
+        while (sub_it->Valid()) {
+          if ((sub_it->key())[0] != DataType::kZScore) {
+              break;
+          }
+          DecodeZScoreKey(sub_it->key(),&sub_key,&member,&score);
+          if(sub_key != meta_key) {
+            break;
+          }
+          s = f.Add(sub_it->key(),(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
+          if(!s.ok()){
+            zset_db_->ReleaseSnapshot(read_options.snapshot);
+            delete sub_it;                    
+            return s;
+          }                            
+          sub_it->Next();
+        }
+        delete sub_it;
+    }
+
+    for(size_t i = 0;i< sort_key_set->size();i++)
+    {
+        rocksdb::Iterator* sub_it =nullptr; 
+        sub_start_key.clear();
+        sub_start_key.append(1,DataType::kZSet);
+        sub_start_key.append((*sort_key_set)[i]->data(),(*sort_key_set)[i]->size());
+
+        meta_key.assign((*sort_key_set)[i]->data()+1,(*sort_key_set)[i]->size()-1);
+
+        sub_it = zset_db_->NewIterator(read_options);
+        sub_it->Seek(sub_start_key);
+        while (sub_it->Valid()) {
+          if ((sub_it->key())[0] != DataType::kZSet) {
+              break;
+          }
+          DecodeZSetKey(sub_it->key(),&sub_key,&member);
+          if(sub_key != meta_key) {
+            break;
+          }
+          s = f.Add(sub_it->key(),(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
+          if(!s.ok()){
+            zset_db_->ReleaseSnapshot(read_options.snapshot);
+            delete sub_it;                    
+            return s;
+          }                            
+          sub_it->Next();
+        }
+        delete sub_it;
+        delete (*sort_key_set)[i];
+    }
+
+    zset_db_->ReleaseSnapshot(read_options.snapshot);
+    delete sort_key_set;
+    s = f.Finish();
+    return s;
+}
+
+void Nemo::ZsetRawScan(const std::string path,const std::string &start, const std::string &end, bool use_snapshot) {
+    std::string en_start,en_end;
+    rocksdb::Iterator* it = nullptr;
+    rocksdb::ReadOptions read_options;
+    rocksdb::Options opts;
+
+    // need some init argment to set the size
+    std::vector<std::string *> * sort_key_set = new std::vector<std::string *>;
+    std::string * sort_key;
+
+    en_start = EncodeZSizeKey(rocksdb::Slice(start.data(),start.size()));
+    if (end.empty()) {
+        en_end = "";
+    } else {
+        en_end = EncodeZSizeKey(rocksdb::Slice(end.data(),end.size()));
+    }
+    read_options.snapshot = zset_db_->GetSnapshot();
+    read_options.fill_cache = false;
+    it = zset_db_->NewIterator(read_options);
+
+    std::string raw_key;
+    it->Seek(en_start);
+    for(int i=0;it->Valid();it->Next(),i++){
+        raw_key.clear();
+        raw_key.append(it->key().data(),it->key().size());
+        if(!en_end.empty()){
+          if(raw_key > en_end){
+            break;
+          }
+        }         
+        if(raw_key[0]!= DataType::kZSize ){
+          break;
+        }
+        std::cout<< "zset raw key "<< raw_key <<std::endl;
+        sort_key = new std::string;
+        sort_key->append(1,it->key().size()-1);
+        sort_key->append(it->key().data()+1,it->key().size()-1);
+        sort_key_set->push_back(sort_key);
+    }
+    delete it;
+    std::sort(sort_key_set->begin(),sort_key_set->end(),lex_less);
+    std::string sub_start_key,sub_key,member,meta_key;
+    double score;
+    for(size_t i = 0;i< sort_key_set->size();i++)
+    {
+        rocksdb::Iterator* sub_it =nullptr; 
+        sub_start_key.clear();
+        sub_start_key.append(1,DataType::kZScore);
+        sub_start_key.append((*sort_key_set)[i]->data(),(*sort_key_set)[i]->size());
+
+        meta_key.assign((*sort_key_set)[i]->data()+1,(*sort_key_set)[i]->size()-1);
+
+        sub_it = zset_db_->NewIterator(read_options);
+        sub_it->Seek(sub_start_key);
+        while (sub_it->Valid()) {
+          if ((sub_it->key())[0] != DataType::kZScore) {
+              break;
+          }
+          DecodeZScoreKey(sub_it->key(),&sub_key,&member,&score);
+          std::cout<< "sub_key:" << sub_key <<std::endl;
+          std::cout<< "meta_key:" << meta_key <<std::endl;
+          std::cout<< "member:" << member <<std::endl;          
+          if(sub_key != meta_key) {
+            break;
+          }                         
+          sub_it->Next();
+        }
+        delete sub_it;
+    }
+
+    for(size_t i = 0;i< sort_key_set->size();i++)
+    {
+        rocksdb::Iterator* sub_it =nullptr; 
+        sub_start_key.clear();
+        sub_start_key.append(1,DataType::kZSet);
+        sub_start_key.append((*sort_key_set)[i]->data(),(*sort_key_set)[i]->size());
+
+        meta_key.assign((*sort_key_set)[i]->data()+1,(*sort_key_set)[i]->size()-1);
+
+        sub_it = zset_db_->NewIterator(read_options);
+        sub_it->Seek(sub_start_key);
+        while (sub_it->Valid()) {
+          if ((sub_it->key())[0] != DataType::kZSet) {
+              break;
+          }
+          DecodeZSetKey(sub_it->key(),&sub_key,&member);
+          std::cout<< "sub_key:" << sub_key <<std::endl;
+          std::cout<< "meta_key:" << meta_key <<std::endl;
+          std::cout<< "member:" << member <<std::endl;          
+          if(sub_key != meta_key) {
+            break;
+          }                         
+          sub_it->Next();
+        }
+        delete sub_it;
+        delete (*sort_key_set)[i];
+    }
+
+    zset_db_->ReleaseSnapshot(read_options.snapshot);
+    delete sort_key_set;
+}
+
+Status Nemo::IngestFile(const std::string path)
+{
+  Status s ;
+  s = kv_db_->IngestExternalFile({path+"/kv.sst"},rocksdb::IngestExternalFileOptions());
+  if(!s.ok())
+    return s;  
+
+  s = hash_db_->IngestExternalFile({path+"/hash.sst"},rocksdb::IngestExternalFileOptions());
+  if(!s.ok())
+    return s;
+
+  s = list_db_->IngestExternalFile({path+"/list.sst"},rocksdb::IngestExternalFileOptions());
+  if(!s.ok())
+    return s;
+
+  s = set_db_->IngestExternalFile({path+"/set.sst"},rocksdb::IngestExternalFileOptions());
+  if(!s.ok())
+    return s;
+
+  s = zset_db_->IngestExternalFile({path+"/zset.sst"},rocksdb::IngestExternalFileOptions());
+  if(!s.ok())
+    return s;  
 
   return Status::OK();
 }
