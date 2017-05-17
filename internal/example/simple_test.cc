@@ -8,6 +8,8 @@
 #include "nemo.h"
 #include "xdebug.h"
 
+#include "nemo_volume_iterator.h"
+
 using namespace nemo;
 
 Nemo *n;
@@ -17,14 +19,13 @@ int main() {
   options.target_file_size_base = 20 * 1024 * 1024;
 
   n = new Nemo("/tmp/nemo_simple_test", options); 
-
   std::string res;
   Status s ;
 
   s = n->HSet("Key", "field1", "val1");
+  assert(s.ok());
   s = n->HSet("Key", "field2", "val2");
-  std::cout << "HSet return: " << s.ToString() << std::endl;
-
+  assert(s.ok());  
   int64_t l = n->HLen("Key");
   std::cout << "HLen return: " << l << std::endl;
 
@@ -54,6 +55,18 @@ int main() {
     kit->Next();
   }
   delete kit;
+
+  s = n->RangeDelWithHandle(meta,"A","x",100);
+  assert(s.ok());  
+  s = n->GetWithHandle(meta,"Hello",&res);
+  assert(s.IsNotFound());
+
+  s = n->RangeDel("A","x",100);
+  assert(s.ok()); 
+
+  s = n->HGet("Key", "field1", &res);
+  assert(s.IsNotFound());
+
   delete n;
 
   return 0;

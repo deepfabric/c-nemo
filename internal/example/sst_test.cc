@@ -90,7 +90,7 @@ int main()
     log_info("======KV Set======");
     s = n->Set("K1", "V1");
     assert(s.ok());
-    s = n->Set("K2", "V2",12345);
+    s = n->Set("K2", "V2",4321);
     assert(s.ok());
     s = n->KvRawScanSave(db_dump_path,"A","x",true);
     assert(s.ok());     
@@ -172,13 +172,13 @@ int main()
     int64_t kv_ttl; 
     s = n->TTL("K2",&kv_ttl);
     assert(s.ok()); 
-    assert(kv_ttl == 12345);     
+    sleep(1);
+    assert(kv_ttl == 4321);
 
 //    log_info("HashRawScan:");
 //    n->HashRawScan("A","x",true);
 
     s = n->HGet("H1", "h1", &res);
-    log_info("HGet error:%s",s.ToString().c_str());      
     assert(s.ok());
     assert(res=="h1");
     s = n->HGet("H2", "h2", &res);

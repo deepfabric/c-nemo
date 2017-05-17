@@ -31,6 +31,7 @@ Status Nemo::HChecknRecover(const std::string& key) {
   std::string key_start = EncodeHashKey(key, "");
   // Iterater and cout
   int field_count = 0;
+  int64_t volume = 0;
   rocksdb::Iterator *it;
   rocksdb::ReadOptions iterate_options;
   iterate_options.snapshot = hash_db_->GetSnapshot();
@@ -47,18 +48,19 @@ Status Nemo::HChecknRecover(const std::string& key) {
       break;
     }
     ++field_count;
+    volume += dbkey.size() + dbfield.size() + it->value().size();        // add volume statistic
     it->Next();
   }
   hash_db_->ReleaseSnapshot(iterate_options.snapshot);
   delete it;
   
   // Compare
-  if (meta.len == field_count) {
+  if (meta.len == field_count && meta.vol == volume ) {
     return Status::OK();
   }
   // Fix if needed
   rocksdb::WriteBatch writebatch;
-  if (IncrHLen(key, (field_count - meta.len), writebatch) == -1) {
+  if (IncrHSize(key, (field_count - meta.len), (volume - meta.vol), writebatch) == -1) {
     return Status::Corruption("fix hash meta failed");
   }
   return hash_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &(writebatch));
@@ -79,9 +81,9 @@ Status Nemo::HSet(const std::string &key, const std::string &field, const std::s
 
     int ret = DoHSet(key, field, val, writebatch);
     if (ret > 0) {
-        if (IncrHLen(key, ret, writebatch) == -1) {
+        if (IncrHSize(key, ret, key.size()+field.size() + val.size() , writebatch) == -1) {
             //hash_record_.Unlock(key);
-            return Status::Corruption("incrhlen error");
+            return Status::Corruption("incrhsize error");
         }
     }
     s = hash_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &(writebatch));
@@ -95,8 +97,8 @@ Status Nemo::HSetNoLock(const std::string &key, const std::string &field, const 
     rocksdb::WriteBatch writebatch;
     int ret = DoHSet(key, field, val, writebatch);
     if (ret > 0) {
-        if (IncrHLen(key, ret, writebatch) == -1) {
-            return Status::Corruption("incrhlen error");
+        if (IncrHSize(key, ret, key.size()+field.size() + val.size(), writebatch) == -1) {
+            return Status::Corruption("incrhsize error");
         }
     }
     s = hash_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &(writebatch));
@@ -121,9 +123,9 @@ Status Nemo::HDel(const std::string &key, const std::string &field) {
     Status s;
     RecordLock l(&mutex_hash_record_, key);
     rocksdb::WriteBatch writebatch;
-    int ret = DoHDel(key, field, writebatch);
+    int64_t ret = DoHDel(key, field, writebatch);
     if (ret > 0) {
-        if (IncrHLen(key, -ret, writebatch) == -1) {
+        if (IncrHSize(key, -1, -key.size()-field.size()-ret, writebatch) == -1) {
             return Status::Corruption("incrlen error");
         }
         s = hash_db_->Write(rocksdb::WriteOptions(), &(writebatch));
@@ -148,13 +150,16 @@ Status Nemo::HDelKey(const std::string &key, int64_t *res) {
 
     s = hash_db_->Get(rocksdb::ReadOptions(), size_key, &val);
     if (s.ok()) {
-      int64_t len = *(int64_t *)val.data();
-      if (len <= 0) {
+      HashMeta meta;
+      meta.DecodeFrom(val);
+      if (meta.len <= 0) {
         s = Status::NotFound("");
       } else {
         *res = 1;
-        len = 0;
-        s = hash_db_->PutWithKeyVersion(rocksdb::WriteOptions(), size_key, rocksdb::Slice((char *)&len, sizeof(int64_t)));
+        meta.len = 0;
+        meta.vol = 0;
+        meta.EncodeTo(val);
+        s = hash_db_->PutWithKeyVersion(rocksdb::WriteOptions(), size_key, val);
       }
     }
 
@@ -175,11 +180,14 @@ Status Nemo::HExpire(const std::string &key, const int32_t seconds, int64_t *res
     if (s.IsNotFound()) {
         *res = 0;
     } else if (s.ok()) {
-      int64_t len = *(int64_t *)val.data();
-      if (len <= 0) {
+      HashMeta meta;
+      meta.DecodeFrom(val);
+      if (meta.len <= 0) {
         return Status::NotFound("");
       }
-
+      meta.len = 0;
+      meta.vol = 0;
+      meta.EncodeTo(val);
       if (seconds > 0) {
         //MutexLock l(&mutex_hash_);
         s = hash_db_->Put(rocksdb::WriteOptions(), size_key, val, seconds);
@@ -266,8 +274,9 @@ Status Nemo::HExpireat(const std::string &key, const int32_t timestamp, int64_t 
     if (s.IsNotFound()) {
         *res = 0;
     } else if (s.ok()) {
-      int64_t len = *(int64_t *)val.data();
-      if (len <= 0) {
+      HashMeta meta;
+      meta.DecodeFrom(val);
+      if (meta.len <= 0) {
         return Status::NotFound("");
       }
 
@@ -311,21 +320,33 @@ Status Nemo::HKeys(const std::string &key, std::vector<std::string> &fields) {
 }
 
 int64_t Nemo::HLen(const std::string &key) {
+    HashMeta meta;
+    if(HSize(key,meta)){
+        return meta.len;
+    }
+    else
+        return -1;
+}
+bool Nemo::HSize(const std::string &key, HashMeta & meta) {
     std::string size_key = EncodeHsizeKey(key);
     std::string val;
     Status s;
 
     s = hash_db_->Get(rocksdb::ReadOptions(), size_key, &val);
     if (s.IsNotFound()) {
-        return 0;
+        meta.len = 0;
+        meta.vol = 0;
+        return true;
     } else if(!s.ok()) {
-        return -1;
+        return false;
     } else {
-        if (val.size() != sizeof(uint64_t)) {
-            return 0;
+        if (val.size() != (sizeof(uint64_t)+ sizeof(uint64_t))) {
+            return false;
         }
-        int64_t ret = *(int64_t *)val.data();
-        return ret < 0? 0 : ret;
+        else{
+            meta.DecodeFrom(val);
+            return true;
+        }
     }
 }
 
@@ -407,6 +428,28 @@ HIterator* Nemo::HScan(const std::string &key, const std::string &start, const s
     return new HIterator(it, iter_options, key); 
 }
 
+HmetaIterator * Nemo::HmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot){
+    std::string key_start, key_end;
+    key_start = EncodeHsizeKey(start);
+    if (end.empty()) {
+        key_end = "";
+    } else {
+        key_end = EncodeHsizeKey(end);
+    }
+
+    rocksdb::ReadOptions read_options;
+    if (use_snapshot) {
+        read_options.snapshot = hash_db_->GetSnapshot();
+    }
+    read_options.fill_cache = false;
+
+    IteratorOptions iter_options(key_end, limit, read_options);
+    
+    rocksdb::Iterator *it = hash_db_->NewIterator(read_options);
+    it->Seek(key_start);
+    return new HmetaIterator(it,iter_options,start); 
+}
+
 Status Nemo::HSetnx(const std::string &key, const std::string &field, const std::string &val) {
     Status s;
     std::string str_val;
@@ -417,8 +460,8 @@ Status Nemo::HSetnx(const std::string &key, const std::string &field, const std:
         rocksdb::WriteBatch writebatch;
         int ret = DoHSet(key, field, val, writebatch);
         if (ret > 0) {
-            if (IncrHLen(key, ret, writebatch) == -1) {
-                return Status::Corruption("incrhlen error");
+            if (IncrHSize(key, ret,key.size()+field.size() + val.size() ,writebatch) == -1) {
+                return Status::Corruption("incrhsize error");
             }
         }
         s = hash_db_->Write(rocksdb::WriteOptions(), &(writebatch));
@@ -556,14 +599,14 @@ int Nemo::DoHSet(const std::string &key, const std::string &field, const std::st
     return ret;
 }
 
-int Nemo::DoHDel(const std::string &key, const std::string &field, rocksdb::WriteBatch &writebatch) {
-    int ret = 0;
+int64_t Nemo::DoHDel(const std::string &key, const std::string &field, rocksdb::WriteBatch &writebatch) {
+    int64_t ret = 0;
     std::string dbval;
     Status s = HGet(key, field, &dbval);
     if (s.ok()) { 
         std::string hkey = EncodeHashKey(key, field);
         writebatch.Delete(hkey);
-        ret = 1;
+        ret = dbval.size();
     } else if(s.IsNotFound()) {
         ret = 0;
     } else {
@@ -587,6 +630,21 @@ int Nemo::IncrHLen(const std::string &key, int64_t incr, rocksdb::WriteBatch &wr
    // } else {
    //     writebatch.Put(size_key, rocksdb::Slice((char *)&len, sizeof(int64_t)));
    // }
+    return 0;
+}
+
+
+int Nemo::IncrHSize(const std::string &key, int64_t incrlen ,int64_t incrvol, rocksdb::WriteBatch &writebatch) {
+    HashMeta meta;
+    if(!HSize(key,meta)){
+        return -1;
+    }
+    meta.len += incrlen;
+    meta.vol += incrvol;
+    std::string size_key = EncodeHsizeKey(key);
+    std::string meta_val;
+    meta.EncodeTo(meta_val);
+    writebatch.Put(size_key, meta_val);
     return 0;
 }
 

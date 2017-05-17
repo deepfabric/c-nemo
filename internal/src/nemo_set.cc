@@ -31,6 +31,7 @@ Status Nemo::SChecknRecover(const std::string& key) {
   std::string key_start = EncodeSetKey(key, "");
   // Iterater and cout
   int field_count = 0;
+  int64_t volume = 0;
   rocksdb::Iterator *it;
   rocksdb::ReadOptions iterate_options;
   iterate_options.snapshot = set_db_->GetSnapshot();
@@ -47,6 +48,7 @@ Status Nemo::SChecknRecover(const std::string& key) {
       break;
     }
     ++field_count;
+    volume += dbkey.size()+dbfield.size();
     it->Next();
   }
   set_db_->ReleaseSnapshot(iterate_options.snapshot);
@@ -57,7 +59,7 @@ Status Nemo::SChecknRecover(const std::string& key) {
   }
   // Fix if needed
   rocksdb::WriteBatch writebatch;
-  if (IncrSSize(key, (field_count - meta.len), writebatch) == -1) {
+  if (IncrSSize(key, (field_count - meta.len),(volume - meta.vol ) ,writebatch) == -1) {
     return Status::Corruption("fix set meta error");
   }
   return set_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &(writebatch));
@@ -79,7 +81,7 @@ Status Nemo::SAdd(const std::string &key, const std::string &member, int64_t *re
 
     if (s.IsNotFound()) { // not found
         *res = 1;
-        if (IncrSSize(key, 1, writebatch) < 0) {
+        if (IncrSSize(key, 1, (key.size()+member.size()), writebatch) < 0) {
             return Status::Corruption("incrSSize error");
         }
         writebatch.Put(set_key, rocksdb::Slice());
@@ -103,7 +105,7 @@ Status Nemo::SAddNoLock(const std::string &key, const std::string &member, int64
 
     if (s.IsNotFound()) { // not found
         *res = 1;
-        if (IncrSSize(key, 1, writebatch) < 0) {
+        if (IncrSSize(key, 1, (key.size()+member.size()), writebatch) < 0) {
             return Status::Corruption("incrSSize error");
         }
         writebatch.Put(set_key, rocksdb::Slice());
@@ -133,7 +135,7 @@ Status Nemo::SRem(const std::string &key, const std::string &member, int64_t *re
 
     if (s.ok()) {
         *res = 1;
-        if (IncrSSize(key, -1, writebatch) < 0) {
+        if (IncrSSize(key, -1, -((key.size()+member.size())), writebatch) < 0) {
             return Status::Corruption("incrSSize error");
         }
         writebatch.Delete(set_key);
@@ -156,7 +158,7 @@ Status Nemo::SRemNoLock(const std::string &key, const std::string &member, int64
 
     if (s.ok()) {
         *res = 1;
-        if (IncrSSize(key, -1, writebatch) < 0) {
+        if (IncrSSize(key, -1, -(key.size()+member.size()), writebatch) < 0) {
             return Status::Corruption("incrSSize error");
         }
         writebatch.Delete(set_key);
@@ -169,17 +171,23 @@ Status Nemo::SRemNoLock(const std::string &key, const std::string &member, int64
     return s;
 }
 
-int Nemo::IncrSSize(const std::string &key, int64_t incr, rocksdb::WriteBatch &writebatch) {
+int Nemo::IncrSSize(const std::string &key, int64_t incrCount, int64_t incrVol, rocksdb::WriteBatch &writebatch) {
     int64_t len = SCard(key);
-
-    if (len == -1) {
+    int64_t vol = SVolume(key);
+    if (len == -1 || vol < 0) {
         return -1;
     }
 
     std::string size_key = EncodeSSizeKey(key);
 
-    len += incr;
-    writebatch.Put(size_key, rocksdb::Slice((char *)&len, sizeof(int64_t)));
+    len += incrCount;
+    vol += incrVol;
+    SetMeta meta;
+    meta.len = len;
+    meta.vol = vol;
+    std::string meta_val;
+    meta.EncodeTo(meta_val);
+    writebatch.Put(size_key, meta_val);
 
    // if (len == 0) {
    //     writebatch.Delete(size_key);
@@ -200,13 +208,34 @@ int64_t Nemo::SCard(const std::string &key) {
     } else if(!s.ok()) {
         return -1;
     } else {
-        if (val.size() != sizeof(int64_t)) {
+        if (val.size() != sizeof(int64_t) * 2 ) {
             return 0;
         }
         int64_t ret = *(int64_t *)val.data();
         return ret < 0 ? 0 : ret;
     }
 }
+
+int64_t Nemo::SVolume(const std::string &key) {
+    std::string size_key = EncodeSSizeKey(key);
+    std::string val;
+    Status s;
+
+    s = set_db_->Get(rocksdb::ReadOptions(), size_key, &val);
+    if (s.IsNotFound()) {
+        return 0;
+    } else if(!s.ok()) {
+        return -1;
+    } else {
+        if (val.size() != sizeof(int64_t)*2) {
+            return 0;
+        }
+        SetMeta meta;
+        int64_t ret = meta.DecodeFrom(val);
+        return ret < 0 ? 0 : ret;
+    }
+}
+
 
 SIterator* Nemo::SScan(const std::string &key, uint64_t limit, bool use_snapshot) {
     std::string set_key = EncodeSetKey(key, "");
@@ -656,14 +685,14 @@ Status Nemo::SMove(const std::string &source, const std::string &destination, co
     if (s.ok()) {
         *res = 1;
         if (source != destination) {
-          if (IncrSSize(source, -1, writebatch_s) < 0) {
+          if (IncrSSize(source, -1, -(source.size()+member.size()) ,writebatch_s) < 0) {
             return Status::Corruption("incrSSize error");
           }
           writebatch_s.Delete(source_key);
 
           s = set_db_->Get(rocksdb::ReadOptions(), destination_key, &val);
           if (s.IsNotFound()) {
-            if (IncrSSize(destination, 1, writebatch_d) < 0) {
+            if (IncrSSize(destination, 1, (destination.size()+member.size()), writebatch_d) < 0) {
               return Status::Corruption("incrSSize error");
             }
           }
@@ -696,14 +725,18 @@ Status Nemo::SDelKey(const std::string &key, int64_t *res) {
 
     s = set_db_->Get(rocksdb::ReadOptions(), size_key, &val);
     if (s.ok()) {
-      int64_t len = *(int64_t *)val.data();
-      if (len <= 0) {
+      SetMeta meta;
+      meta.DecodeFrom(val);
+      if (meta.len <= 0) {
         s = Status::NotFound("");
       } else {
-        len = 0;
+        meta.len = 0;
+        meta.vol = 0;
         *res = 1;
         //MutexLock l(&mutex_set_);
-        s = set_db_->PutWithKeyVersion(rocksdb::WriteOptions(), size_key, rocksdb::Slice((char *)&len, sizeof(int64_t)));
+        std::string meta_val;
+        meta.EncodeTo(meta_val);        
+        s = set_db_->PutWithKeyVersion(rocksdb::WriteOptions(), size_key, meta_val);
       }
     }
     return s;
@@ -723,8 +756,9 @@ Status Nemo::SExpire(const std::string &key, const int32_t seconds, int64_t *res
     if (s.IsNotFound()) {
         *res = 0;
     } else if (s.ok()) {
-      int64_t len = *(int64_t *)val.data();
-      if (len <= 0) {
+      SetMeta meta;
+      meta.DecodeFrom(val);
+      if (meta.len <= 0) {
         return Status::NotFound("");
       }
 
@@ -802,8 +836,9 @@ Status Nemo::SExpireat(const std::string &key, const int32_t timestamp, int64_t 
     if (s.IsNotFound()) {
         *res = 0;
     } else if (s.ok()) {
-      int64_t len = *(int64_t *)val.data();
-      if (len <= 0) {
+      SetMeta meta;
+      meta.DecodeFrom(val);
+      if (meta.len <= 0) {
         return Status::NotFound("");
       }
 
@@ -820,3 +855,24 @@ Status Nemo::SExpireat(const std::string &key, const int32_t timestamp, int64_t 
     return s;
 }
 
+SmetaIterator * Nemo::SmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot){
+    std::string key_start, key_end;
+    key_start = EncodeSSizeKey(start);
+    if (end.empty()) {
+        key_end = "";
+    } else {
+        key_end = EncodeSSizeKey(end);
+    }
+
+    rocksdb::ReadOptions read_options;
+    if (use_snapshot) {
+        read_options.snapshot = list_db_->GetSnapshot();
+    }
+    read_options.fill_cache = false;
+
+    IteratorOptions iter_options(key_end, limit, read_options);
+    
+    rocksdb::Iterator *it = list_db_->NewIterator(read_options);
+    it->Seek(key_start);
+    return new SmetaIterator(it,iter_options,start); 
+}

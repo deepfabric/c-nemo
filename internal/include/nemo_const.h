@@ -24,6 +24,8 @@ enum DBType {
   kLIST_DB,
   kZSET_DB,
   kSET_DB,
+  kMeta_DB,
+  kRaft_DB,
   kALL
 };
 
@@ -92,6 +94,11 @@ struct SM {
     std::string member;
 };
 
+struct KVT {
+    std::string key;
+    int64_t volume;
+    char kType;
+};
 
 namespace DataType {
     static const char kKv        = 'k';

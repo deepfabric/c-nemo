@@ -147,7 +147,10 @@ public:
     Status HVals(const std::string &key, std::vector<std::string> &vals);
     Status HIncrby(const std::string &key, const std::string &field, int64_t by, std::string &new_val);
     Status HIncrbyfloat(const std::string &key, const std::string &field, double by, std::string &new_val);
-    
+    HmetaIterator * HmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot = true);
+    bool HSize(const std::string &key, HashMeta & meta);
+    int IncrHSize(const std::string &key, int64_t incrlen ,int64_t incrvol, rocksdb::WriteBatch &writebatch);
+
     // ==============List=====================
     Status LIndex(const std::string &key, const int64_t index, std::string *val);
     Status LLen(const std::string &key, int64_t *llen);
@@ -163,6 +166,7 @@ public:
     Status RPopLPush(const std::string &src, const std::string &dest, std::string &val);
     Status LInsert(const std::string &key, Position pos, const std::string &pivot, const std::string &val, int64_t *llen);
     Status LRem(const std::string &key, const int64_t count, const std::string &val, int64_t *rem_count);
+    LmetaIterator * LmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot = true);
 
     // ==============ZSet=====================
     Status ZAdd(const std::string &key, const double score, const std::string &member, int64_t *res);
@@ -189,6 +193,7 @@ public:
     Status SAdd(const std::string &key, const std::string &member, int64_t *res);
     Status SRem(const std::string &key, const std::string &member, int64_t *res);
     int64_t SCard(const std::string &key);
+    int64_t SVolume(const std::string &key);   
     SIterator* SScan(const std::string &key, uint64_t limit, bool use_snapshot = false);
     Status SMembers(const std::string &key, std::vector<std::string> &vals);
     Status SUnionStore(const std::string &destination, const std::vector<std::string> &keys, int64_t *res);
@@ -201,6 +206,8 @@ public:
     Status SPop(const std::string &key, std::string &member);
     Status SRandMember(const std::string &key, std::vector<std::string> &members, const int count = 1);
     Status SMove(const std::string &source, const std::string &destination, const std::string &member, int64_t *res);
+
+    SmetaIterator * SmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot);
     
     // ==============HyperLogLog=====================
     Status PfAdd(const std::string &key, const std::vector<std::string> &values, bool & update);
@@ -285,6 +292,8 @@ public:
     void HashRawScan(const std::string &start, const std::string &end, bool use_snapshot); 
     void ZsetRawScan(const std::string path,const std::string &start, const std::string &end, bool use_snapshot);
     Status IngestFile(const std::string path);
+    Status RangeDel(const std::string  & start, const std::string & end, uint64_t limit);
+    Status RangeDelWithHandle(rocksdb::DBNemo * db,const std::string  & start, const std::string & end, uint64_t limit);    
 
 private:
 
@@ -372,7 +381,7 @@ private:
     Status SeekCursor(int64_t cursor, std::string* start_key);
 
     int DoHSet(const std::string &key, const std::string &field, const std::string &val, rocksdb::WriteBatch &writebatch);
-    int DoHDel(const std::string &key, const std::string &field, rocksdb::WriteBatch &writebatch);
+    int64_t DoHDel(const std::string &key, const std::string &field, rocksdb::WriteBatch &writebatch);
     Status HSetNoLock(const std::string &key, const std::string &field, const std::string &val);
     int IncrHLen(const std::string &key, int64_t incr, rocksdb::WriteBatch &writebatch);
 
@@ -387,7 +396,7 @@ private:
 
     int IncrZLen(const std::string &key, int64_t incr, rocksdb::WriteBatch &writebatch);
 
-    int IncrSSize(const std::string &key, int64_t incr, rocksdb::WriteBatch &writebatch);
+    int IncrSSize(const std::string &key, int64_t incrCount, int64_t incrVol, rocksdb::WriteBatch &writebatch) ;
 
 
     Status SAddNoLock(const std::string &key, const std::string &member, int64_t *res);
@@ -437,6 +446,8 @@ private:
     std::atomic<bool> dump_to_terminate_;
     std::map<std::string, pthread_t> dump_pthread_ts_;
     Snapshots dump_snapshots_;
+
+    friend class VolumeIterator;
 };
 
 }
