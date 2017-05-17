@@ -36,6 +36,8 @@ Nemo::Nemo(const std::string &db_path, const Options &options)
    mkpath((db_path_ + "list").c_str(), 0755);
    mkpath((db_path_ + "zset").c_str(), 0755);
    mkpath((db_path_ + "set").c_str(), 0755);
+   mkpath((db_path_ + "meta").c_str(), 0755);   
+   mkpath((db_path_ + "raft").c_str(), 0755);
 
    cursors_store_.cur_size_ = 0;
    cursors_store_.max_size_ = 5000;
@@ -119,6 +121,20 @@ Nemo::Nemo(const std::string &db_path, const Options &options)
    }
    set_db_ = std::unique_ptr<rocksdb::DBNemo>(db_ttl);
 
+   s = rocksdb::DBNemo::Open(open_options_, db_path_ + "meta", &db_ttl, rocksdb::kMetaPrefixMeta);
+   if (!s.ok()) {
+     fprintf (stderr, "[FATAL] open meta db failed, %s\n", s.ToString().c_str());
+     exit(-1);
+   }
+   meta_db_ = std::unique_ptr<rocksdb::DBNemo>(db_ttl);
+
+  s = rocksdb::DBNemo::Open(open_options_, db_path_ + "raft", &db_ttl, rocksdb::kMetaPrefixRaft);
+   if (!s.ok()) {
+     fprintf (stderr, "[FATAL] open raft db failed, %s\n", s.ToString().c_str());
+     exit(-1);
+   }
+   raft_db_ = std::unique_ptr<rocksdb::DBNemo>(db_ttl);
+
    // Add separator of Meta and data
    hash_db_->Put(rocksdb::WriteOptions(), "h", "");
    list_db_->Put(rocksdb::WriteOptions(), "l", "");
@@ -135,4 +151,21 @@ Nemo::Nemo(const std::string &db_path, const Options &options)
    }
 };
 
+/*
+rocksdb::ColumnFamilyHandle* Nemo::GetCFHandleByname(const std::string name){
+    if(name == "raft_meta"){
+      return cf_handle_[1];
+    }
+    else if(name == "raft_log"){
+      return cf_handle_[2];
+    }
+};
+rocksdb::Status Nemo::CFWrite(rocksdb::WriteBatch *wb){
+  return kv_db_->WriteWithKeyTTL(rocksdb::WriteOptions(),wb,0);
+};
+
+rocksdb::Status Nemo::CFGet(rocksdb::ColumnFamilyHandle* cf_h,const std::string & key,std::string * value){
+  return kv_db_->Get(rocksdb::ReadOptions(),cf_h,key,value);
+};
+*/
 }   // namespace nemo

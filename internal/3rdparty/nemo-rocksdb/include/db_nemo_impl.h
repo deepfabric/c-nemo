@@ -23,6 +23,8 @@ const char kMetaPrefixHash = 'H';
 const char kMetaPrefixZset = 'Z';
 const char kMetaPrefixSet = 'S';
 const char kMetaPrefixList = 'L';
+const char kMetaPrefixMeta = '\0';
+const char kMetaPrefixRaft = '\0';
 
 class NemoCompactionFilter;
 class NemoCompactionFilterFactory;
@@ -258,7 +260,7 @@ class NemoIterator : public Iterator {
     }
 //    std::cout << "old_version: " << ver << " old_TS: " << ts << std::endl;
 
-    if (meta_prefix_ == kMetaPrefixKv) {
+    if (meta_prefix_ == kMetaPrefixKv || meta_prefix_ == kMetaPrefixMeta || meta_prefix_ == kMetaPrefixRaft ) {
       if (DBNemoImpl::IsStale(ts, env_)) {
 //        std::cout << "Is Died " << iter_->key().ToString() << std::endl;
         return false;
@@ -368,7 +370,7 @@ class NemoCompactionFilter : public CompactionFilter {
     }
 //    std::cout << "old_version: " << ver << " old_TS: " << ts << std::endl;
 
-    if (meta_prefix_ == kMetaPrefixKv) {
+    if (meta_prefix_ == kMetaPrefixKv || meta_prefix_ == kMetaPrefixMeta || meta_prefix_ == kMetaPrefixRaft ) {
       if (DBNemoImpl::IsStale(ts, env_)) {
 //        std::cout << "Should Drop " << key.ToString() << std::endl;
         return true;

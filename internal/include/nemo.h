@@ -70,6 +70,8 @@ public:
         list_db_.reset();
         zset_db_.reset();
         set_db_.reset();
+        meta_db_.reset();
+        raft_db_.reset();
 
         pthread_mutex_destroy(&(mutex_cursors_));
         pthread_mutex_destroy(&(mutex_dump_));
@@ -205,6 +207,44 @@ public:
     Status PfCount(const std::vector<std::string> &keys, int & result);
     Status PfMerge(const std::vector<std::string> &keys);
 
+/*
+    //===============rocksdb-cf=================
+    rocksdb::ColumnFamilyHandle* GetCFHandleByname(const std::string name);
+    Status CFWrite(rocksdb::WriteBatch *wb);
+    Status CFGet(rocksdb::ColumnFamilyHandle* cf_h,const std::string & key,std::string * value);
+ */
+
+    rocksdb::DBNemo * GetMetaHandle()
+    {
+        return meta_db_.get();
+    }
+
+    rocksdb::DBNemo * GetRaftHandle()
+    {
+        return raft_db_.get();        
+    }
+
+    Status BatchWrite(rocksdb::DBNemo* db, rocksdb::WriteBatch *wb)
+    {
+        return db->Write(rocksdb::WriteOptions(),wb,0);
+    }
+
+    Status GetWithHandle(rocksdb::DBNemo* db,const std::string & key,std::string * value )
+    {
+        return db->Get(rocksdb::ReadOptions(),key,value);
+    }
+
+    Status PutWithHandle(rocksdb::DBNemo* db,const std::string & key,const std::string & value )
+    {
+        return db->Put(rocksdb::WriteOptions(),key,value);
+    }
+
+    KIterator* KScanWithHandle(rocksdb::DBNemo* db,const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot = false);
+    Status KDelWithHandle(rocksdb::DBNemo* db,const std::string &key, int64_t *res);
+
+    void RawScanSave(const DBType type,const std::string &start, const std::string &end, bool use_snapshot);
+
+
     // ==============Server=====================
     Status BGSave(Snapshots &snapshots, const std::string &db_path = ""); 
     Status BGSaveGetSnapshot(Snapshots &snapshots);
@@ -256,6 +296,9 @@ private:
     std::unique_ptr<rocksdb::DBNemo> list_db_;
     std::unique_ptr<rocksdb::DBNemo> zset_db_;
     std::unique_ptr<rocksdb::DBNemo> set_db_;
+    std::unique_ptr<rocksdb::DBNemo> meta_db_;
+    std::unique_ptr<rocksdb::DBNemo> raft_db_;
+    //std::vector<rocksdb::ColumnFamilyHandle*> cf_handle_;
 
     port::RecordMutex mutex_hash_record_;
     port::RecordMutex mutex_kv_record_;

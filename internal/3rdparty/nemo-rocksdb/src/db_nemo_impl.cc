@@ -140,7 +140,7 @@ Status DBNemoImpl::ExtractVersionAndTS(const Slice& value, uint32_t* version, in
 }
 
 void DBNemoImpl::ExtractUserKey(char meta_prefix, const Slice& key, std::string* user_key) {
-  if (meta_prefix == kMetaPrefixKv) {
+  if (meta_prefix == kMetaPrefixKv || meta_prefix == kMetaPrefixMeta || meta_prefix == kMetaPrefixRaft ) {
     user_key->assign(key.data(), key.size());
       return;
   }
@@ -594,7 +594,7 @@ Status DBNemoImpl::GetKeyTTL(const ReadOptions& options, const Slice& key, int32
       return st;
     }
 
-    if (meta_prefix_ == kMetaPrefixKv) {
+    if (meta_prefix_ == kMetaPrefixKv || meta_prefix_ == kMetaPrefixMeta || meta_prefix_ == kMetaPrefixRaft ) {
       if (timestamp == 0) {
         *ttl = -1;
         return Status::OK();
@@ -691,7 +691,7 @@ bool DBNemoImpl::GetVersionAndTS(DB* db, char meta_prefix,
       const Slice& key, uint32_t* version, int32_t* timestamp) {
   *version = *timestamp = 0;
 
-  if (meta_prefix == kMetaPrefixKv) {
+  if (meta_prefix == kMetaPrefixKv || meta_prefix == kMetaPrefixMeta || meta_prefix == kMetaPrefixRaft ) {
     return true;
   }
 
@@ -732,7 +732,7 @@ Status DBNemoImpl::SanityCheckVersionAndTS(const Slice& key,
 
   int32_t timestamp_value = DecodeFixed32(val.data() + val.size() - kTSLength);
   // data key
-  if (meta_prefix_ != kMetaPrefixKv && meta_prefix_ != key[0]) {
+  if (meta_prefix_ != kMetaPrefixKv && meta_prefix_ != kMetaPrefixMeta && meta_prefix_ != kMetaPrefixRaft && meta_prefix_ != key[0]) {
     std::string meta_key(1, meta_prefix_);
     int32_t len = *((uint8_t *)(key.data() + 1));
     meta_key.append(key.data() + 2, len);
