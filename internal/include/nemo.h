@@ -171,6 +171,7 @@ public:
     // ==============ZSet=====================
     Status ZAdd(const std::string &key, const double score, const std::string &member, int64_t *res);
     int64_t ZCard(const std::string &key);
+    Status ZVolume(const std::string &key,int64_t* s_len, int64_t* s_vol);
     int64_t ZCount(const std::string &key, const double begin, const double end, bool is_lo = false, bool is_ro = false);
     ZIterator* ZScan(const std::string &key, const double begin, const double end, uint64_t limit, bool use_snapshot = false);
     Status ZIncrby(const std::string &key, const std::string &member, const double by, std::string &new_val);
@@ -189,11 +190,13 @@ public:
     Status ZRemrangebyrank(const std::string &key, const int64_t start, const int64_t stop, int64_t* count);
     Status ZRemrangebyscore(const std::string &key, const double start, const double stop, int64_t* count, bool is_lo = false, bool is_ro = false);
 
+    ZmetaIterator * ZmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot);
+
     // ==============Set=====================
     Status SAdd(const std::string &key, const std::string &member, int64_t *res);
     Status SRem(const std::string &key, const std::string &member, int64_t *res);
     int64_t SCard(const std::string &key);
-    int64_t SVolume(const std::string &key);   
+    Status SVolume(const std::string &key,int64_t* s_len, int64_t* s_vol);
     SIterator* SScan(const std::string &key, uint64_t limit, bool use_snapshot = false);
     Status SMembers(const std::string &key, std::vector<std::string> &vals);
     Status SUnionStore(const std::string &destination, const std::vector<std::string> &keys, int64_t *res);
@@ -394,7 +397,7 @@ private:
 
     Status RPopLPushInternal(const std::string &src, const std::string &dest, std::string &val);
 
-    int IncrZLen(const std::string &key, int64_t incr, rocksdb::WriteBatch &writebatch);
+    int IncrZLen(const std::string &key, int64_t incrCount, int64_t incrVol, rocksdb::WriteBatch &writebatch);    
 
     int IncrSSize(const std::string &key, int64_t incrCount, int64_t incrVol, rocksdb::WriteBatch &writebatch) ;
 
@@ -430,7 +433,7 @@ private:
     Status ZGetMetaByKey(const std::string &key, ZSetMeta& meta);
 
     Status ZDressZScoreforZSet(const std::string& key, int* count);
-    Status ZDressZSetforZScore(const std::string& key, int* count);
+    Status ZDressZSetforZScore(const std::string& key, int *count,int64_t * vol);    
 
     std::tuple<int64_t, int64_t> BitOpGetSrcValue(const std::vector<std::string> &src_keys, std::vector<std::string> &src_values);
     std::string BitOpOperate(BitOpType op, const std::vector<std::string> &src_values, int64_t max_len, int64_t min_len);

@@ -208,5 +208,21 @@ private:
     SetMeta meta_;
 };
 
+class ZmetaIterator : public Iterator{
+public:
+    ZmetaIterator(rocksdb::Iterator *it, const IteratorOptions iter_options,const rocksdb::Slice &key);
+    virtual void Next();
+    virtual void Skip(int64_t offset);
+    virtual bool Valid();
+    std::string key()   { return key_; };
+    ZSetMeta value() { return meta_; };
+    void CheckAndLoadData();
+private:
+    ZmetaIterator(ZmetaIterator&);
+    void operator=(ZmetaIterator&);
+    std::string key_;
+    ZSetMeta meta_;
+};
+
 }
 #endif

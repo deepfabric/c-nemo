@@ -25,6 +25,7 @@ private:
     HmetaIterator * Hit;
     LmetaIterator * Lit;
     SmetaIterator * Sit;
+    ZmetaIterator * Zit;
     KIterator     * Kit;
     bool    use_snapshot_;
     std::string end_;

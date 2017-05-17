@@ -366,3 +366,38 @@ void nemo::SmetaIterator::Skip(int64_t offset) {
   CheckAndLoadData();
 }
 
+// ZSet meta key
+nemo::ZmetaIterator::ZmetaIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key)
+  : Iterator(it, iter_options) {
+    this->key_.assign(key.data(), key.size());      
+    CheckAndLoadData();
+  }
+
+// check valid and load ZSet meta data
+void nemo::ZmetaIterator::CheckAndLoadData() {
+  if (valid_) {
+    rocksdb::Slice ks = Iterator::key();
+
+    if (ks[0] == DataType::kZSize) {
+      this->key_.assign(ks.data()+1,ks.size()-1);
+      std::string val(Iterator::value().data(),Iterator::value().size());
+      meta_.DecodeFrom(val);
+      return ;
+    }
+  }
+  valid_ = false;
+}
+
+bool nemo::ZmetaIterator::Valid() {
+  return valid_;
+}
+
+void nemo::ZmetaIterator::Next() {
+  Iterator::Next();
+  CheckAndLoadData();
+}
+
+void nemo::ZmetaIterator::Skip(int64_t offset) {
+  Iterator::Skip(offset);
+  CheckAndLoadData();
+}

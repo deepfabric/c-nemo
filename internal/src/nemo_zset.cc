@@ -62,9 +62,9 @@ Status Nemo::ZDressZScoreforZSet(const std::string& key, int *count) {
 }
 
 // Iterator kZSet and Dress kZSet for kZScore
-Status Nemo::ZDressZSetforZScore(const std::string& key, int *count) {
+Status Nemo::ZDressZSetforZScore(const std::string& key, int *count,int64_t * vol) {
   std::string key_start = EncodeZSetKey(key, "");
-  
+
   rocksdb::Iterator *it;
   rocksdb::WriteBatch writebatch;
   rocksdb::ReadOptions iterate_options;
@@ -89,6 +89,7 @@ Status Nemo::ZDressZSetforZScore(const std::string& key, int *count) {
     s = zset_db_->Get(rocksdb::ReadOptions(), score_key, &val);
     if (s.ok()) {
       ++(*count);
+      *vol += (dbkey.size()+dbfield.size())*2 + sizeof(double) + sizeof(int64_t);
     } else if (s.IsNotFound()) {
       // TODO log inconsistent
       writebatch.Delete(it->key());
@@ -124,13 +125,14 @@ Status Nemo::ZChecknRecover(const std::string& key) {
   }
   // Iterator y and dress for z
   int field_count = 0;
+  int64_t volume = 0;
   s = ZDressZScoreforZSet(key, &field_count);
   if (!s.ok()) {
     return s;
   }
   field_count = 0;
   // Iterator z and dress for y
-  s = ZDressZSetforZScore(key, &field_count);
+  s = ZDressZSetforZScore(key, &field_count, &volume);
   if (!s.ok()) {
     return s;
   }
@@ -140,7 +142,7 @@ Status Nemo::ZChecknRecover(const std::string& key) {
   }
   // Fix if needed
   rocksdb::WriteBatch writebatch;
-  if (IncrZLen(key, (field_count - meta.len), writebatch) == -1) {
+  if (IncrZLen(key, (field_count - meta.len),(volume - meta.vol) , writebatch) == -1) {
     return Status::Corruption("fix zset meta error");
   }
   return zset_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &(writebatch));
@@ -167,7 +169,7 @@ Status Nemo::ZAdd(const std::string &key, const double score, const std::string 
     RecordLock l(&mutex_zset_record_, key);
     int ret = DoZSet(key, score, member, batch);
     if (ret == 2) {
-        if (IncrZLen(key, 1, batch) == 0) {
+        if (IncrZLen(key, 1, key.size()*2+member.size()*2+sizeof(double)+sizeof(int64_t), batch) == 0) {
             s = zset_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &batch);
             *res = 1;
             return s;
@@ -198,7 +200,7 @@ Status Nemo::ZAddNoLock(const std::string &key, const double score, const std::s
     rocksdb::WriteBatch batch;
     int ret = DoZSet(key, score, member, batch);
     if (ret == 2) {
-        if (IncrZLen(key, 1, batch) == 0) {
+        if (IncrZLen(key, 1, key.size()*2+member.size()*2+sizeof(double)+sizeof(int64_t),batch) == 0) {
             s = zset_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &batch);
             *res = 1;
             return s;
@@ -223,7 +225,7 @@ int64_t Nemo::ZCard(const std::string &key) {
     std::string size_key = EncodeZSizeKey(key);
     s = zset_db_->Get(rocksdb::ReadOptions(), size_key, &val);
     if (s.ok()) {
-        if (val.size() != sizeof(uint64_t)) {
+        if (val.size() != sizeof(uint64_t)*2) {
             return 0;
         }
         int64_t ret = *(int64_t *)val.data();
@@ -232,6 +234,30 @@ int64_t Nemo::ZCard(const std::string &key) {
         return 0;
     } else {
         return -1;
+    }
+}
+
+Status Nemo::ZVolume(const std::string &key,int64_t* s_len, int64_t* s_vol) {
+    Status s;
+    std::string val;
+    std::string size_key = EncodeZSizeKey(key);
+    s = zset_db_->Get(rocksdb::ReadOptions(), size_key, &val);
+    if (s.ok()) {
+        if (val.size() != sizeof(uint64_t) * 2 ) {
+            return Status::Corruption("set sizekey value size error");
+        }
+        ZSetMeta meta;
+        int64_t ret = meta.DecodeFrom(val);
+        *s_len = meta.len;
+        *s_vol = meta.vol;
+        return s;
+    } else if(s.IsNotFound()){
+        *s_len = 0;
+        *s_vol = 0;
+        return Status::OK();         
+    }
+    else{
+        return s;
     }
 }
 
@@ -343,7 +369,7 @@ Status Nemo::ZIncrby(const std::string &key, const std::string &member, const do
         std::string buf;
         buf.append((char *)(&by), sizeof(double));
         writebatch.Put(db_key, buf);
-        if (IncrZLen(key, 1, writebatch) != 0) {
+        if (IncrZLen(key, 1, key.size()*2+member.size()*2+sizeof(double)+sizeof(int64_t),writebatch) != 0) {
             return Status::Corruption("incr zsize error");
         }
     } else {
@@ -629,7 +655,7 @@ Status Nemo::ZRem(const std::string &key, const std::string &member, int64_t *re
       std::string score_key = EncodeZScoreKey(key, member, dscore);
       batch.Delete(score_key);
 
-      if (IncrZLen(key, -1, batch) == 0) {
+      if (IncrZLen(key, -1, -(key.size()*2+member.size()*2+sizeof(double)+sizeof(int64_t)),batch) == 0) {
         s = zset_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &batch);
         *res = 1;
         return s;
@@ -733,6 +759,7 @@ Status Nemo::ZRemrangebylex(const std::string &key, const std::string &min, cons
     }
 
     *count = 0;
+    int64_t volume = 0;
     //MutexLock l(&mutex_zset_);
     RecordLock l(&mutex_zset_record_, key);
 
@@ -756,6 +783,7 @@ Status Nemo::ZRemrangebylex(const std::string &key, const std::string &min, cons
               score_key = EncodeZScoreKey(key, member, dscore);
               batch.Delete(score_key);
               (*count)++;
+              volume += key.size()*2 + member.size()*2 + sizeof(double) + sizeof(int64_t);
             } else {
                 delete iter;
                 return s;
@@ -776,6 +804,7 @@ Status Nemo::ZRemrangebylex(const std::string &key, const std::string &min, cons
               score_key = EncodeZScoreKey(key, member, dscore);
               batch.Delete(score_key);
               (*count)++;
+              volume += key.size()*2 + member.size()*2 + sizeof(double) + sizeof(int64_t);
             } else {
                 delete iter;
                 return s;
@@ -789,6 +818,7 @@ Status Nemo::ZRemrangebylex(const std::string &key, const std::string &min, cons
               score_key = EncodeZScoreKey(key, member, dscore);
               batch.Delete(score_key);
               (*count)++;
+              volume += key.size()*2 + member.size()*2 + sizeof(double) + sizeof(int64_t);
             } else {
                 delete iter;
                 return s;
@@ -796,7 +826,7 @@ Status Nemo::ZRemrangebylex(const std::string &key, const std::string &min, cons
         }
     }
     delete iter;
-    if (IncrZLen(key, -(*count), batch) == 0) {
+    if (IncrZLen(key, -(*count), -volume, batch) == 0) {
         s = zset_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &batch);
         return s;
     } else {
@@ -814,6 +844,7 @@ Status Nemo::ZRemrangebyrank(const std::string &key, const int64_t start, const 
     std::string size_key;
     std::string db_key;
     *count = 0;
+    int64_t volume = 0;
     Status s;
     //MutexLock l(&mutex_zset_);
     RecordLock l(&mutex_zset_record_, key);
@@ -848,9 +879,10 @@ Status Nemo::ZRemrangebyrank(const std::string &key, const int64_t start, const 
                     batch.Delete(db_key);
                     batch.Delete(score_key);
                     (*count)++;
+                    volume += key.size()*2 + iter->member().size()*2 + sizeof(double) + sizeof(int64_t);
                 }
                 delete iter;
-                if (IncrZLen(key, -(*count), batch) == 0) {
+                if (IncrZLen(key, -(*count), -volume, batch) == 0) {
                     s = zset_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &batch);
                     return s;
                 } else {
@@ -869,6 +901,7 @@ Status Nemo::ZRemrangebyrankNoLock(const std::string &key, const int64_t start, 
     std::string size_key;
     std::string db_key;
     *count = 0;
+    int64_t volume = 0;
     Status s;
     int64_t t_size = ZCard(key);
     if (t_size >= 0) {
@@ -900,9 +933,10 @@ Status Nemo::ZRemrangebyrankNoLock(const std::string &key, const int64_t start, 
                     batch.Delete(db_key);
                     batch.Delete(score_key);
                     (*count)++;
+                    volume += key.size()*2 + iter->member().size()*2 + sizeof(double) + sizeof(int64_t);
                 }
                 delete iter;
-                if (IncrZLen(key, -(*count), batch) == 0) {
+                if (IncrZLen(key, -(*count), -volume, batch) == 0) {
                     s = zset_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &batch);
                     return s;
                 } else {
@@ -925,6 +959,7 @@ Status Nemo::ZRemrangebyscore(const std::string &key, const double mn, const dou
     std::string size_key;
     std::string db_key;
     *count = 0;
+    int64_t volume = 0;
     Status s;
     double start = is_lo ? mn + eps : mn;
     double stop = is_ro ? mx - eps : mx;
@@ -938,9 +973,10 @@ Status Nemo::ZRemrangebyscore(const std::string &key, const double mn, const dou
         batch.Delete(db_key);
         batch.Delete(score_key);
         (*count)++;
+        volume += key.size()*2 + iter->member().size()*2 + sizeof(double) + sizeof(int64_t);
     }
     delete iter;
-    if (IncrZLen(key, -(*count), batch) == 0) {
+    if (IncrZLen(key, -(*count), -volume, batch) == 0) {
         s = zset_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &batch);
         return s;
     } else {
@@ -995,15 +1031,19 @@ Status Nemo::ZDelKey(const std::string &key, int64_t *res) {
     
     std::string size_key = EncodeZSizeKey(key);
     s = zset_db_->Get(rocksdb::ReadOptions(), size_key, &val);
+    ZSetMeta meta;     
     if (s.ok()) {
-      int64_t len = *(int64_t *)val.data();
-      if (len <= 0) {
+      meta.DecodeFrom(val);  
+      if (meta.len <= 0) {
         s = Status::NotFound("");
       } else {
         *res = 1;
-        len = 0;
+        meta.len = 0;
+        meta.vol = 0;
+        std::string meta_val;
+        meta.EncodeTo(meta_val);           
         //MutexLock l(&mutex_zset_);
-        s = zset_db_->PutWithKeyVersion(rocksdb::WriteOptions(), size_key, rocksdb::Slice((char *)&len, sizeof(int64_t)));
+        s = zset_db_->PutWithKeyVersion(rocksdb::WriteOptions(), size_key, meta_val);
       }
     }
 
@@ -1025,8 +1065,9 @@ Status Nemo::ZExpire(const std::string &key, const int32_t seconds, int64_t *res
     if (s.IsNotFound()) {
         *res = 0;
     } else if (s.ok()) {
-      int64_t len = *(int64_t *)val.data();
-      if (len <= 0) {
+      ZSetMeta meta;
+      meta.DecodeFrom(val);        
+      if (meta.len <= 0) {
         return Status::NotFound("empty zset");
       }
 
@@ -1103,8 +1144,9 @@ Status Nemo::ZExpireat(const std::string &key, const int32_t timestamp, int64_t 
     if (s.IsNotFound()) {
         *res = 0;
     } else if (s.ok()) {
-      int64_t len = *(int64_t *)val.data();
-      if (len <= 0) {
+      ZSetMeta meta;
+      meta.DecodeFrom(val);        
+      if (meta.len <= 0) {
         return Status::NotFound("empty zset");
       }
 
@@ -1121,15 +1163,28 @@ Status Nemo::ZExpireat(const std::string &key, const int32_t timestamp, int64_t 
     return s;
 }
 
-int Nemo::IncrZLen(const std::string &key, int64_t by, rocksdb::WriteBatch &writebatch) {
+int Nemo::IncrZLen(const std::string &key, int64_t incrCount, int64_t incrVol, rocksdb::WriteBatch &writebatch) {
     Status s;
-    std::string size_key = EncodeZSizeKey(key);
-    int64_t size = ZCard(key);
-    if (size == -1) {
+
+    int64_t len = 0;
+    int64_t vol = 0;
+    s = ZVolume(key,&len,&vol);
+    if(!s.ok()){
         return -1;
     }
-    size += by;
-    writebatch.Put(size_key, rocksdb::Slice((char *)&size, sizeof(int64_t)));
+    if (len == -1 || vol < 0) {
+        return -1;
+    }
+    len += incrCount;
+    vol += incrVol;
+    ZSetMeta meta;
+    meta.len = len;
+    meta.vol = vol;
+    std::string meta_val;
+    meta.EncodeTo(meta_val);
+
+    std::string size_key = EncodeZSizeKey(key);
+    writebatch.Put(size_key, meta_val);
 
     //writebatch.Put(size_key, std::to_string(size));
 
@@ -1141,3 +1196,24 @@ int Nemo::IncrZLen(const std::string &key, int64_t by, rocksdb::WriteBatch &writ
     return 0;
 }
 
+ZmetaIterator * Nemo::ZmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot){
+    std::string key_start, key_end;
+    key_start = EncodeZSizeKey(start);
+    if (end.empty()) {
+        key_end = "";
+    } else {
+        key_end = EncodeZSizeKey(end);
+    }
+
+    rocksdb::ReadOptions read_options;
+    if (use_snapshot) {
+        read_options.snapshot = zset_db_->GetSnapshot();
+    }
+    read_options.fill_cache = false;
+
+    IteratorOptions iter_options(key_end, limit, read_options);
+    
+    rocksdb::Iterator *it = zset_db_->NewIterator(read_options);
+    it->Seek(key_start);
+    return new ZmetaIterator(it,iter_options,start);
+}

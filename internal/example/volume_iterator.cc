@@ -93,19 +93,34 @@ int main()
      */
     int64_t sadd_res;
     int64_t s_count;    
-    log_info("======Test SAdd======");
+    log_info("======Test Set======");
     s = n->SAdd("setKey", "member1", &sadd_res);
     assert(s.ok());
     s = n->SAdd("setKey", "member2", &sadd_res);
     assert(s.ok()); 
     s = n->SRem("setKey", "member2", &sadd_res);
     assert(s.ok());
-    s_count = n->SCard("setKey"); 
+    s_count = n->SCard("setKey");
     assert(s.ok());
     assert(s_count == 1);
 
+    /*
+     *  Test ZAdd
+     */
+    int64_t zadd_res;
+    int64_t z_count;    
+    log_info("======Test ZSet======");
+    s = n->ZAdd("zsetKey", 1.234, "member1", &zadd_res);
+    assert(s.ok());
+    s = n->ZAdd("zsetKey", 2.345, "member2", &zadd_res);
+    assert(s.ok()); 
+    s = n->ZRem("zsetKey", "member2", &zadd_res);
+    assert(s.ok());
+    z_count = n->ZCard("zsetKey");
+    assert(z_count == 1);
+
     std::cout<< "Volume Scan:"<< std::endl;
-    VolumeIterator * vit = new VolumeIterator(n,"A","x",100,true);
+    VolumeIterator * vit = new VolumeIterator(n,"A","zz",100,true);
     for(int i=0;vit->Valid();vit->Next(),i++){
         std::cout<<"iterator loops "<< i <<"key:"<< vit->key()
                 <<",value:" << vit->value()

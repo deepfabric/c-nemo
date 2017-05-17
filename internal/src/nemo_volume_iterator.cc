@@ -10,10 +10,13 @@ nemo::VolumeIterator::~VolumeIterator(){
   if(use_snapshot_)
     n->set_db_->ReleaseSnapshot(Sit->read_options().snapshot);
   if(use_snapshot_)
+    n->zset_db_->ReleaseSnapshot(Zit->read_options().snapshot);
+  if(use_snapshot_)
     n->kv_db_->ReleaseSnapshot(Kit->read_options().snapshot);            
-  delete Hit;  
+  delete Hit;
   delete Lit;
-  delete Sit;    
+  delete Sit;
+  delete Zit; 
   delete Kit;
 }
 nemo::VolumeIterator::VolumeIterator(Nemo * nemo, const std::string  &start,const std::string &end, uint64_t limit, bool use_snapshot):
@@ -21,6 +24,7 @@ nemo::VolumeIterator::VolumeIterator(Nemo * nemo, const std::string  &start,cons
   Hit = n->HmetaScan(start,end,limit,use_snapshot);
   Lit = n->LmetaScan(start,end,limit,use_snapshot);
   Sit = n->SmetaScan(start,end,limit,use_snapshot);
+  Zit = n->ZmetaScan(start,end,limit,use_snapshot);  
   Kit = n->KScan(start,end,limit,use_snapshot);
   kvt.resize(0);
   Init();
@@ -45,6 +49,10 @@ void nemo::VolumeIterator::Init(){
   {
     kvt.push_back(KVT{Sit->key(),Sit->value().vol,DataType::kSSize});
   }
+  if(Zit->Valid())
+  {
+    kvt.push_back(KVT{Zit->key(),Zit->value().vol,DataType::kZSize});
+  }  
   if(Kit->Valid())
   {
     kvt.push_back(KVT{Kit->key(),Kit->value().size()+Kit->key().size(), DataType::kKv});
@@ -87,12 +95,19 @@ void nemo::VolumeIterator::Next(){
       }
       break;
     case  DataType::kSSize:
-      Lit->Next();
-      if(Lit->Valid() && Lit->key()<= end_){
-          kvt.push_back(KVT{Lit->key(),Lit->value().vol,DataType::kSSize});
+      Sit->Next();
+      if(Sit->Valid() && Sit->key()<= end_){
+          kvt.push_back(KVT{Sit->key(),Sit->value().vol,DataType::kSSize});
           push_heap(kvt.begin(),kvt.end(),cmp);
       }
-      break;      
+      break;     
+    case  DataType::kZSize:
+      Zit->Next();
+      if(Zit->Valid() && Zit->key()<= end_){
+          kvt.push_back(KVT{Zit->key(),Zit->value().vol,DataType::kZSize});
+          push_heap(kvt.begin(),kvt.end(),cmp);
+      }
+      break;        
     case  DataType::kKv:
       Kit->Next();
         if(Kit->Valid()&& Kit->key()<=end_){

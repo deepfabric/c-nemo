@@ -172,8 +172,12 @@ Status Nemo::SRemNoLock(const std::string &key, const std::string &member, int64
 }
 
 int Nemo::IncrSSize(const std::string &key, int64_t incrCount, int64_t incrVol, rocksdb::WriteBatch &writebatch) {
-    int64_t len = SCard(key);
-    int64_t vol = SVolume(key);
+    int64_t len = 0 ;
+    int64_t vol = 0;
+    Status s = SVolume(key,&len,&vol);
+    if(!s.ok()){
+        return -1;
+    }
     if (len == -1 || vol < 0) {
         return -1;
     }
@@ -216,23 +220,28 @@ int64_t Nemo::SCard(const std::string &key) {
     }
 }
 
-int64_t Nemo::SVolume(const std::string &key) {
+Status Nemo::SVolume(const std::string &key,int64_t* s_len, int64_t* s_vol) {
     std::string size_key = EncodeSSizeKey(key);
     std::string val;
     Status s;
 
     s = set_db_->Get(rocksdb::ReadOptions(), size_key, &val);
-    if (s.IsNotFound()) {
-        return 0;
-    } else if(!s.ok()) {
-        return -1;
+    if (s.IsNotFound()){
+        *s_len = 0;
+        *s_vol = 0;
+        return Status::OK(); 
+    } 
+    else if(!s.ok()) {
+        return s;
     } else {
         if (val.size() != sizeof(int64_t)*2) {
-            return 0;
+            return Status::Corruption("set sizekey value size error");
         }
         SetMeta meta;
         int64_t ret = meta.DecodeFrom(val);
-        return ret < 0 ? 0 : ret;
+        *s_len = meta.len;
+        *s_vol = meta.vol;
+        return s;
     }
 }
 
@@ -724,8 +733,8 @@ Status Nemo::SDelKey(const std::string &key, int64_t *res) {
     std::string size_key = EncodeSSizeKey(key);
 
     s = set_db_->Get(rocksdb::ReadOptions(), size_key, &val);
+    SetMeta meta;    
     if (s.ok()) {
-      SetMeta meta;
       meta.DecodeFrom(val);
       if (meta.len <= 0) {
         s = Status::NotFound("");
@@ -866,13 +875,13 @@ SmetaIterator * Nemo::SmetaScan( const std::string &start, const std::string &en
 
     rocksdb::ReadOptions read_options;
     if (use_snapshot) {
-        read_options.snapshot = list_db_->GetSnapshot();
+        read_options.snapshot = set_db_->GetSnapshot();
     }
     read_options.fill_cache = false;
 
     IteratorOptions iter_options(key_end, limit, read_options);
     
-    rocksdb::Iterator *it = list_db_->NewIterator(read_options);
+    rocksdb::Iterator *it = set_db_->NewIterator(read_options);
     it->Seek(key_start);
     return new SmetaIterator(it,iter_options,start); 
 }
