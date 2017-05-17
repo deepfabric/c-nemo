@@ -1432,6 +1432,37 @@ void Nemo::ZsetRawScan(const std::string path,const std::string &start, const st
     delete sort_key_set;
 }
 
+Status Nemo::RawScanSaveAll(const std::string path,const std::string &start, const std::string &end, bool use_snapshot)
+{
+  Status s;
+  s = KvRawScanSave(path,start,end,use_snapshot); 
+  if(!s.ok())
+  {
+    return s;
+  } 
+  s = HashRawScanSave(path,start,end,use_snapshot);
+  if(!s.ok())
+  {
+    return s;
+  }   
+  s = ListRawScanSave(path,start,end,use_snapshot);
+  if(!s.ok())
+  {
+    return s;
+  }   
+  s = SetRawScanSave(path,start,end,use_snapshot);
+  if(!s.ok())
+  {
+    return s;
+  } 
+  s = ZsetRawScanSave(path,start,end,use_snapshot);
+  if(!s.ok())
+  {
+    return s;
+  } 
+  return Status::OK();
+}
+
 Status Nemo::IngestFile(const std::string path)
 {
   Status s ;

@@ -21,67 +21,6 @@ int main()
     system("rm -rf /tmp/nemo/sst_test_dump");
     //options.compression = false; 
 
-/*
-    rocksdb::DBWithTTL * d1 = n->GetMetaHandle();
-    rocksdb::DBWithTTL * d2 = n->GetRaftHandle();
-
-    rocksdb::WriteBatch batch;
-    batch.Put("key1", "value1");
-    batch.Put("key2", "value2");
-    batch.Put("key3", "value3");
-    batch.Delete("key1");
-
-    s = n->BatchWrite(d1,&batch);
-    assert(s.ok());     
-    s = n->BatchWrite(d2,&batch);
-    assert(s.ok()); 
-
-    s = n->PutWithHandle(d1,"put","put");
-    assert(s.ok());
-    s = n->GetWithHandle(d1,"put",&res);
-    assert(s.ok());
-    assert( res == "put");
-
-    s = n->GetWithHandle(d1,"key2",&res);
-    assert(s.ok());
-    assert( res == "value2");
-
-    s = n->GetWithHandle(d1,"put",&res);
-    assert(s.ok());
-*/
-
-/*
-    std::cout<< "GetWithHandle after new nemo, res:" << res << std::endl;
-    std::cout<< "Kscan with handle:"<< std::endl;
-    KIterator * it = n->KScanWithHandle(d1,"A","x",100,true);
-    for(int i=0;it->Valid();it->Next(),i++){
-        std::cout<<"iterator loops "<< i <<"key:"<< it->key()
-                <<",value:" << it->value()
-                <<std::endl;
-    }
-    delete it;
-*/
-/*
-    std::cout<< "Volume Scan:"<< std::endl;
-    VolumeIterator * vit = new VolumeIterator(n,"A","x",100,true);
-    for(int i=0;vit->Valid();vit->Next(),i++){
-        std::cout<<"iterator loops "<< i <<"key:"<< vit->key()
-                <<",value:" << vit->value()
-                <<std::endl;
-    }
-    delete vit;
-*/
-
-/*
-    std::cout<< "redis kV Scan:"<< std::endl;
-    KIterator* kit = n->KScan("A","x",100,true);
-    for(int i=0;kit->Valid();kit->Next(),i++){
-        std::cout<<"iterator loops "<< i <<"key:"<< kit->key()
-                <<",value:" << kit->value()
-                <<std::endl;
-    }
-    delete kit;
-*/
     Nemo *n = new Nemo(db_path, options); 
     Status s;
     std::string res;
@@ -91,9 +30,7 @@ int main()
     s = n->Set("K1", "V1");
     assert(s.ok());
     s = n->Set("K2", "V2",4321);
-    assert(s.ok());
-    s = n->KvRawScanSave(db_dump_path,"A","x",true);
-    assert(s.ok());     
+    assert(s.ok());    
 
     log_info("======Test HSet======");
     s = n->HSet("H1", "h1", "h1");
@@ -107,6 +44,7 @@ int main()
     s = n->HDel("H2", "h1");
     assert(s.ok());
     s = n->Del("H1",&count);
+    assert(s.ok());    
     s = n->HSet("H1", "h1", "h1");
     assert(s.ok());
     s = n->HSet("H3", "h3", "h3");
@@ -117,7 +55,6 @@ int main()
     s = n->TTL("H3",&ts);
     assert(s.ok());
     log_info("Expireat at timestamp:%d",ts);
-    s = n->HashRawScanSave(db_dump_path,"A","x",true);
     assert(s.ok()); 
 
     int64_t list_len;
@@ -131,8 +68,6 @@ int main()
     assert(s.ok()); 
     s = n->Del("L3",&count);
     assert(s.ok()); 
-    s = n->ListRawScanSave(db_dump_path,"A","x",true);
-    assert(s.ok()); 
 
     int64_t res_set;
     s = n->SAdd("S1","s1A",&res_set);
@@ -141,8 +76,6 @@ int main()
     assert(s.ok());     
     s = n->SAdd("S2","s2",&res_set);
     assert(s.ok());     
-    s = n->SetRawScanSave(db_dump_path,"A","x",true);
-    assert(s.ok()); 
 
     int64_t res_zset;
     double score;
@@ -151,8 +84,9 @@ int main()
     s = n->ZAdd("Z1",200.00,"z1B",&res_zset);
     assert(s.ok());     
     s = n->ZAdd("Z2",300.00,"z2",&res_zset);
-    assert(s.ok());     
-    s = n->ZsetRawScanSave(db_dump_path,"A","x",true);
+    assert(s.ok()); 
+
+    s = n->RawScanSaveAll(db_dump_path,"A","zz",true);
     assert(s.ok());
 
     delete n;
@@ -208,6 +142,10 @@ int main()
     s = n->LPop("L3",&list_val);
     assert(s.IsNotFound()); 
 
+    assert(n->SIsMember("S1","s1A"));
+    assert(n->SIsMember("S1","s1B"));
+    assert(n->SIsMember("S2","s2"));          
+
     s = n->ZScore("Z1","z1A",&score);
     assert(s.ok());
     assert(score == 100.00);  
@@ -220,46 +158,8 @@ int main()
 
     log_info("Ingest OK!");
     log_info(""); 
+
     delete n; 
- /*  
-
-    s = n->Get("H2",&res);
-    std::cout<<"Get H2 res: " <<s.ToString()<<std::endl;
-    assert(s.ok());
-
-*/
-/*
-//Test Expire
-
-    int64_t ret; 
-    log_info("======Test Del======");
-    s = n->Expire("H1", 1, &ret);
-    log_info("Test Expire OK return %s", s.ToString().c_str());
-    sleep(1);
-
-
-// Test Del
-
-    log_info("======Test Del======");
-    s = n->Del("H3", &ret);
-    log_info("Test Del OK return %s", s.ToString().c_str());
-*/
-/*
-    VolumeIterator * it = new VolumeIterator(n,"","X",100);
-    for(int i=0;it->Valid();it->Next(),i++){
-        std::cout<<"iterator loops "<< i <<" entry name:"<< it->key()
-                <<",entry vol:" << it->value()
-                <<",entry type:" << it->type()
-                <<std::endl;
-    } 
-*/
-/*
-    s = RangeDelWithHandle(n,d1,"A","x",100);
-    assert(s.ok()); 
-
-    s = n->GetWithHandle(d1,"put",&res);
-    assert(s.IsNotFound());
-*/
     return 0;
 }
 
