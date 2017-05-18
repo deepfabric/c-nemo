@@ -269,7 +269,6 @@ Status Nemo::SMembers(const std::string &key, std::vector<std::string> &members)
     for (; iter->Valid(); iter->Next()) {
         members.push_back(iter->member());
     }
-    set_db_->ReleaseSnapshot(iter->read_options().snapshot);
     delete iter;
     return Status::OK();
 }
@@ -288,7 +287,6 @@ Status Nemo::SUnion(const std::vector<std::string> &keys, std::vector<std::strin
                 result_flag[member] = 1;
             }
         }
-        set_db_->ReleaseSnapshot(iter->read_options().snapshot);
         delete iter;
     }
     return Status::OK();
@@ -312,7 +310,6 @@ Status Nemo::SUnionStore(const std::string &destination, const std::vector<std::
         for (; iter->Valid(); iter->Next()) {
             member_result[iter->member()] = 1;
         }
-        set_db_->ReleaseSnapshot(iter->read_options().snapshot);
         delete iter;
     }
 
@@ -330,7 +327,6 @@ Status Nemo::SUnionStore(const std::string &destination, const std::vector<std::
                 return s;
             }
         }
-        set_db_->ReleaseSnapshot(iter->read_options().snapshot);
         delete iter;
     }
 
@@ -374,7 +370,6 @@ Status Nemo::SInter(const std::vector<std::string> &keys, std::vector<std::strin
             members.push_back(member);
         }
     }
-    set_db_->ReleaseSnapshot(iter->read_options().snapshot);
     delete iter;
     return Status::OK();
 }
@@ -411,7 +406,6 @@ Status Nemo::SInterStore(const std::string &destination, const std::vector<std::
             member_result[member] = 1;
         }
     }
-    set_db_->ReleaseSnapshot(iter->read_options().snapshot);
     delete iter;
 
     // we delete the destination if it exists
@@ -429,7 +423,6 @@ Status Nemo::SInterStore(const std::string &destination, const std::vector<std::
                 //return s;
             }
         }
-        set_db_->ReleaseSnapshot(iter->read_options().snapshot);
         delete iter;
     }
 
@@ -471,7 +464,6 @@ Status Nemo::SDiff(const std::vector<std::string> &keys, std::vector<std::string
             members.push_back(member);
         }
     }
-    set_db_->ReleaseSnapshot(iter->read_options().snapshot);
     delete iter;
     return Status::OK();
 }
@@ -500,7 +492,6 @@ Status Nemo::SDiffStore(const std::string &destination, const std::vector<std::s
             member_result[member] = 1;
         }
     }
-    set_db_->ReleaseSnapshot(iter->read_options().snapshot);
     delete iter;
 
     // we delete the destination if it exists
@@ -517,7 +508,6 @@ Status Nemo::SDiffStore(const std::string &destination, const std::vector<std::s
                 return s;
             }
         }
-        set_db_->ReleaseSnapshot(iter->read_options().snapshot);
         delete iter;
     }
 
@@ -588,7 +578,6 @@ Status Nemo::SPop(const std::string &key, std::string &member) {
         iter->Next();
     }
     member = iter->member();
-    set_db_->ReleaseSnapshot(iter->read_options().snapshot);
     delete iter;
    
     duration_us = NowMicros() - start_us;
@@ -664,7 +653,6 @@ Status Nemo::SRandMember(const std::string &key, std::vector<std::string> &membe
         }
     }
 
-    set_db_->ReleaseSnapshot(iter->read_options().snapshot);
     delete iter;
     return Status::OK();
 }

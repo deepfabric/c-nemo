@@ -107,7 +107,7 @@ int main()
     s = n->TTL("K2",&kv_ttl);
     assert(s.ok()); 
     sleep(1);
-    assert(kv_ttl == 4321);
+    assert(kv_ttl == 4320);
 
 //    log_info("HashRawScan:");
 //    n->HashRawScan("A","x",true);

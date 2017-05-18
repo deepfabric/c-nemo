@@ -323,7 +323,6 @@ int64_t Nemo::ZCount(const std::string &key, const double begin, const double en
             break;
         }
     }
-    zset_db_->ReleaseSnapshot(it->read_options().snapshot);
     delete it;
     return n;
 }
@@ -421,7 +420,6 @@ Status Nemo::ZRange(const std::string &key, const int64_t start, const int64_t s
               n = t_size - 1;
               for (; n > t_stop && iter->Valid(); iter->Next(), n--);
               if (n != t_stop) {
-                zset_db_->ReleaseSnapshot(iter->read_options().snapshot);
                 delete iter;
                 return Status::Corruption("ziterate error");
               }
@@ -439,7 +437,6 @@ Status Nemo::ZRange(const std::string &key, const int64_t start, const int64_t s
               for (; n < t_start && iter->Valid(); iter->Next(), n++);
 
               if (n < t_start) {
-                  zset_db_->ReleaseSnapshot(iter->read_options().snapshot);
                   delete iter;
                   return Status::Corruption("ziterate error");
               }
@@ -447,7 +444,6 @@ Status Nemo::ZRange(const std::string &key, const int64_t start, const int64_t s
                   sms.push_back({iter->score(), iter->member()});
               }
             }
-            zset_db_->ReleaseSnapshot(iter->read_options().snapshot);
             delete iter;
             return Status::OK();
         }
@@ -467,7 +463,6 @@ Status Nemo::ZRangebyscore(const std::string &key, const double mn, const double
     for (; iter->Valid(); iter->Next()) {
         sms.push_back({iter->score(), iter->member()});
     }
-    zset_db_->ReleaseSnapshot(iter->read_options().snapshot);
     delete iter;
     return Status::OK();
 }
@@ -685,7 +680,6 @@ Status Nemo::ZRank(const std::string &key, const std::string &member, int64_t *r
         if (iter->member().compare(member) == 0) {
             *rank = count;
         }
-        zset_db_->ReleaseSnapshot(iter->read_options().snapshot);
         delete iter;
     }
     return s;
@@ -710,7 +704,6 @@ Status Nemo::ZRevrank(const std::string &key, const std::string &member, int64_t
                 count++;
             }
         } 
-        zset_db_->ReleaseSnapshot(iter->read_options().snapshot);
         delete iter;
         *rank = count;
     }
@@ -736,7 +729,6 @@ Status Nemo::ZRangebylex(const std::string &key, const std::string &min, const s
     for (; iter->Valid(); iter->Next()) {
         members.push_back(iter->member());
     }
-    zset_db_->ReleaseSnapshot(iter->read_options().snapshot);
     delete iter;
     return Status::OK();
 }
@@ -748,7 +740,6 @@ Status Nemo::ZLexcount(const std::string &key, const std::string &min, const std
     for (; iter->Valid(); iter->Next()) {
         (*count)++;
     }
-    zset_db_->ReleaseSnapshot(iter->read_options().snapshot);
     delete iter;
     return Status::OK();
 }
