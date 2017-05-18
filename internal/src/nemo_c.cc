@@ -1098,10 +1098,10 @@ extern "C"	{
 		nemo_SaveError(errptr,nemo->rep->DeleteWithHandle(db->rep,keystr));	
 	}
 
-	nemo_RawIterator_t * nemo_KScanWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,bool use_snapshot)
+	nemo_RawIterator_t * nemo_RawScanWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,bool use_snapshot)
 	{
 		nemo_RawIterator_t * it = new nemo_RawIterator_t;	
-		it->rep = nemo->rep->KScanWithHandle(db->rep,use_snapshot);
+		it->rep = nemo->rep->RawScanWithHandle(db->rep,use_snapshot);
 		return it;
 	}
 	void RawNext(nemo_RawIterator_t * it)

@@ -254,7 +254,8 @@ public:
         return db->Delete(rocksdb::WriteOptions(),key);
     }
 
-    RawIterator* KScanWithHandle(rocksdb::DBNemo* db,bool use_snapshot = true);
+    RawIterator* RawScanWithHandle(rocksdb::DBNemo* db,bool use_snapshot = true);
+    KIterator* KScanWithHandle(rocksdb::DBNemo * db, const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot=true); 
     Status KDelWithHandle(rocksdb::DBNemo* db,const std::string &key, int64_t *res);
 
     // ==============Server=====================

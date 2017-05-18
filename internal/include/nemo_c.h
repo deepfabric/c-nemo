@@ -358,7 +358,7 @@ extern void nemo_DeleteWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,
 								const char * key, const size_t keylen, 
 								char ** errptr); 
 
-extern nemo_RawIterator_t * nemo_KScanWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,bool use_snapshot);
+extern nemo_RawIterator_t * nemo_RawScanWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,bool use_snapshot);
 extern void KNext(nemo_KIterator_t * it);
 extern bool KValid(nemo_KIterator_t * it);
 extern void Kkey(nemo_KIterator_t * it,char ** key ,size_t* keylen);
