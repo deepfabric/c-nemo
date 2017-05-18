@@ -383,7 +383,7 @@ KIterator* Nemo::KScan(const std::string &start, const std::string &end, uint64_
     rocksdb::Iterator *it = kv_db_->NewIterator(read_options);
     it->Seek(start);
 
-    return new KIterator(it, iter_options); 
+    return new KIterator(it, kv_db_.get(), iter_options); 
 }
 
 KIterator* Nemo::KScanWithHandle(rocksdb::DBNemo * db,const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot) {
@@ -403,7 +403,7 @@ KIterator* Nemo::KScanWithHandle(rocksdb::DBNemo * db,const std::string &start, 
 
     rocksdb::Iterator *it = db->NewIterator(read_options);
     it->Seek(start);
-    return new KIterator(it, iter_options); 
+    return new KIterator(it, db, iter_options); 
 }
 
 Status Nemo::GetStartKey(int64_t cursor, std::string* start_key) {

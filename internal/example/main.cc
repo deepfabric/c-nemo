@@ -38,7 +38,8 @@ int main()
     kit->Skip(2);
     bool skip_ret = kit->Valid();
     log_info ("test Internal Skip(2) when no keys, expect false, return %s", skip_ret ? "true" : "false");
-
+    delete kit;
+    
     s = n->Set("tSetKey1", "tSetVal1");
     s = n->Set("tSetKey2", "tSetVal2");
     s = n->Set("tSetKey3", "tSetVal3");
@@ -62,6 +63,7 @@ int main()
     skip_ret = kit->Valid();
     log_info ("test Internal Skip(2) again when 3 keys, expect false, return %s", skip_ret ? "true" : "false");
     log_info ("                 expect[tSetKey3, tSetVal3], key=%s val=%s", kit->key().c_str(), kit->value().c_str());
+    delete kit;
 
     kit = n->KScan("", "", -1);
     kit->Skip(5);
@@ -69,7 +71,7 @@ int main()
     log_info ("test Internal Skip(5) when 3 keys, expect false, return %s", skip_ret ? "true" : "false");
     log_info ("                 expect[tSetKey3, tSetVal3], key=%s val=%s", kit->key().c_str(), kit->value().c_str());
     log_info("");
-
+    delete kit;
     /*
      *  Test Internal Hash Skip
      */
@@ -556,6 +558,7 @@ int main()
         log_info("Test Scan key: %s, value: %s", scan_iter->key().c_str(), scan_iter->value().c_str());
     }
 
+    delete scan_iter;
     //just delete all key-value set before
     s = n->MDel(keys, &mcount);
     log_info("");

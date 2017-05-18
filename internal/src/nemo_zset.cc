@@ -283,7 +283,7 @@ ZIterator* Nemo::ZScan(const std::string &key, const double begin, const double 
 
     rocksdb::Iterator *it = zset_db_->NewIterator(read_options);
     it->Seek(key_start);
-    return new ZIterator(it, iter_options, key); 
+    return new ZIterator(it, zset_db_.get(), iter_options, key); 
 }
 
 ZLexIterator* Nemo::ZScanbylex(const std::string &key, const std::string &min, const std::string &max, uint64_t limit, bool use_snapshot) {
@@ -305,7 +305,7 @@ ZLexIterator* Nemo::ZScanbylex(const std::string &key, const std::string &min, c
 
     rocksdb::Iterator *it = zset_db_->NewIterator(read_options);
     it->Seek(key_start);
-    return new ZLexIterator(it, iter_options, key); 
+    return new ZLexIterator(it, zset_db_.get(), iter_options, key); 
 }
 
 int64_t Nemo::ZCount(const std::string &key, const double begin, const double end, bool is_lo, bool is_ro) {
@@ -417,7 +417,7 @@ Status Nemo::ZRange(const std::string &key, const int64_t start, const int64_t s
               rocksdb::Iterator* rocksdb_it = zset_db_->NewIterator(read_options);
               rocksdb_it->Seek(zscore_key_end);
               rocksdb_it->Prev();
-              iter = new ZIterator(rocksdb_it, iter_options, key);
+              iter = new ZIterator(rocksdb_it, zset_db_.get(), iter_options, key);
               n = t_size - 1;
               for (; n > t_stop && iter->Valid(); iter->Next(), n--);
               if (n != t_stop) {
@@ -1215,5 +1215,5 @@ ZmetaIterator * Nemo::ZmetaScan( const std::string &start, const std::string &en
     
     rocksdb::Iterator *it = zset_db_->NewIterator(read_options);
     it->Seek(key_start);
-    return new ZmetaIterator(it,iter_options,start);
+    return new ZmetaIterator(it, zset_db_.get(), iter_options,start);
 }

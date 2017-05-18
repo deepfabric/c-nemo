@@ -835,7 +835,8 @@ Status Nemo::KvRawScanSave(const std::string path,const std::string &start, cons
     if (end.empty()) {
         en_end = "";
     }
-    read_options.snapshot = kv_db_->GetSnapshot();
+    if(use_snapshot)
+      read_options.snapshot = kv_db_->GetSnapshot();
     read_options.fill_cache = false;
     it = kv_db_->NewIterator(read_options);
 
@@ -851,13 +852,15 @@ Status Nemo::KvRawScanSave(const std::string path,const std::string &start, cons
         }
         s = f.Add(it->key(),(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
         if(!s.ok()){
-          kv_db_->ReleaseSnapshot(read_options.snapshot);   
+          if(use_snapshot)          
+            kv_db_->ReleaseSnapshot(read_options.snapshot);   
           delete it;
           return s;
         }
     }
     delete it;
-    kv_db_->ReleaseSnapshot(read_options.snapshot);
+    if(use_snapshot)
+      kv_db_->ReleaseSnapshot(read_options.snapshot);
     s = f.Finish();
     return s;
 }
@@ -883,7 +886,8 @@ Status Nemo::HashRawScanSave(const std::string path,const std::string &start, co
     } else {
         en_end = EncodeHsizeKey(rocksdb::Slice(end.data(),end.size()));
     }
-    read_options.snapshot = hash_db_->GetSnapshot();
+    if(use_snapshot)    
+      read_options.snapshot = hash_db_->GetSnapshot();
     read_options.fill_cache = false;
     it = hash_db_->NewIterator(read_options);
 
@@ -903,7 +907,8 @@ Status Nemo::HashRawScanSave(const std::string path,const std::string &start, co
         }
         s = f.Add(it->key(),(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
         if(!s.ok()){
-          hash_db_->ReleaseSnapshot(read_options.snapshot);   
+          if(use_snapshot)
+            hash_db_->ReleaseSnapshot(read_options.snapshot);   
           delete it;
           return s;
         }
@@ -935,7 +940,8 @@ Status Nemo::HashRawScanSave(const std::string path,const std::string &start, co
           }
           s = f.Add(sub_it->key(),(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
           if(!s.ok()){
-            hash_db_->ReleaseSnapshot(read_options.snapshot);
+            if(use_snapshot)
+              hash_db_->ReleaseSnapshot(read_options.snapshot);
             delete sub_it;                    
             return s;
           }                            
@@ -944,7 +950,8 @@ Status Nemo::HashRawScanSave(const std::string path,const std::string &start, co
         delete sub_it;
         delete (*sort_key_set)[i];
     }
-    hash_db_->ReleaseSnapshot(read_options.snapshot);
+    if(use_snapshot)
+      hash_db_->ReleaseSnapshot(read_options.snapshot);
     delete sort_key_set;
     s = f.Finish();
     return s;
@@ -1055,7 +1062,8 @@ Status Nemo::ListRawScanSave(const std::string path,const std::string &start, co
     } else {
         en_end = EncodeLMetaKey(rocksdb::Slice(end.data(),end.size()));
     }
-    read_options.snapshot = list_db_->GetSnapshot();
+    if(use_snapshot)    
+      read_options.snapshot = list_db_->GetSnapshot();
     read_options.fill_cache = false;
     it = list_db_->NewIterator(read_options);
 
@@ -1074,7 +1082,8 @@ Status Nemo::ListRawScanSave(const std::string path,const std::string &start, co
         }
         s = f.Add(it->key(),(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
         if(!s.ok()){
-          list_db_->ReleaseSnapshot(read_options.snapshot);   
+          if(use_snapshot)          
+            list_db_->ReleaseSnapshot(read_options.snapshot);   
           delete it;
           return s;
         }
@@ -1107,7 +1116,8 @@ Status Nemo::ListRawScanSave(const std::string path,const std::string &start, co
           }
           s = f.Add(sub_it->key(),(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
           if(!s.ok()){
-            list_db_->ReleaseSnapshot(read_options.snapshot);
+            if(use_snapshot)
+              list_db_->ReleaseSnapshot(read_options.snapshot);
             delete sub_it;                    
             return s;
           }                            
@@ -1116,7 +1126,8 @@ Status Nemo::ListRawScanSave(const std::string path,const std::string &start, co
         delete sub_it;
         delete (*sort_key_set)[i];
     }
-    list_db_->ReleaseSnapshot(read_options.snapshot);
+    if(use_snapshot)
+      list_db_->ReleaseSnapshot(read_options.snapshot);
     delete sort_key_set;
     s = f.Finish();
     return s;
@@ -1143,7 +1154,8 @@ Status Nemo::SetRawScanSave(const std::string path,const std::string &start, con
     } else {
         en_end = EncodeSSizeKey(rocksdb::Slice(end.data(),end.size()));
     }
-    read_options.snapshot = set_db_->GetSnapshot();
+    if(use_snapshot)
+      read_options.snapshot = set_db_->GetSnapshot();
     read_options.fill_cache = false;
     it = set_db_->NewIterator(read_options);
 
@@ -1162,7 +1174,8 @@ Status Nemo::SetRawScanSave(const std::string path,const std::string &start, con
         }
         s = f.Add(it->key(),(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
         if(!s.ok()){
-          set_db_->ReleaseSnapshot(read_options.snapshot);   
+          if(use_snapshot)          
+            set_db_->ReleaseSnapshot(read_options.snapshot);   
           delete it;
           return s;
         }
@@ -1195,7 +1208,8 @@ Status Nemo::SetRawScanSave(const std::string path,const std::string &start, con
           }
           s = f.Add(sub_it->key(),(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
           if(!s.ok()){
-            set_db_->ReleaseSnapshot(read_options.snapshot);
+            if(use_snapshot)            
+              set_db_->ReleaseSnapshot(read_options.snapshot);
             delete sub_it;                    
             return s;
           }                            
@@ -1204,7 +1218,8 @@ Status Nemo::SetRawScanSave(const std::string path,const std::string &start, con
         delete sub_it;
         delete (*sort_key_set)[i];
     }
-    set_db_->ReleaseSnapshot(read_options.snapshot);
+    if(use_snapshot)
+      set_db_->ReleaseSnapshot(read_options.snapshot);
     delete sort_key_set;
     s = f.Finish();
     return s;
@@ -1231,7 +1246,8 @@ Status Nemo::ZsetRawScanSave(const std::string path,const std::string &start, co
     } else {
         en_end = EncodeZSizeKey(rocksdb::Slice(end.data(),end.size()));
     }
-    read_options.snapshot = zset_db_->GetSnapshot();
+    if(use_snapshot)    
+      read_options.snapshot = zset_db_->GetSnapshot();
     read_options.fill_cache = false;
     it = zset_db_->NewIterator(read_options);
 
@@ -1250,7 +1266,8 @@ Status Nemo::ZsetRawScanSave(const std::string path,const std::string &start, co
         }
         s = f.Add(it->key(),(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
         if(!s.ok()){
-          zset_db_->ReleaseSnapshot(read_options.snapshot);   
+          if(use_snapshot)          
+            zset_db_->ReleaseSnapshot(read_options.snapshot);   
           delete it;
           return s;
         }
@@ -1284,7 +1301,8 @@ Status Nemo::ZsetRawScanSave(const std::string path,const std::string &start, co
           }
           s = f.Add(sub_it->key(),(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
           if(!s.ok()){
-            zset_db_->ReleaseSnapshot(read_options.snapshot);
+            if(use_snapshot)
+              zset_db_->ReleaseSnapshot(read_options.snapshot);
             delete sub_it;                    
             return s;
           }                            
@@ -1314,7 +1332,8 @@ Status Nemo::ZsetRawScanSave(const std::string path,const std::string &start, co
           }
           s = f.Add(sub_it->key(),(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
           if(!s.ok()){
-            zset_db_->ReleaseSnapshot(read_options.snapshot);
+            if(use_snapshot)
+              zset_db_->ReleaseSnapshot(read_options.snapshot);
             delete sub_it;                    
             return s;
           }                            
@@ -1324,7 +1343,8 @@ Status Nemo::ZsetRawScanSave(const std::string path,const std::string &start, co
         delete (*sort_key_set)[i];
     }
 
-    zset_db_->ReleaseSnapshot(read_options.snapshot);
+    if(use_snapshot)
+      zset_db_->ReleaseSnapshot(read_options.snapshot);
     delete sort_key_set;
     s = f.Finish();
     return s;

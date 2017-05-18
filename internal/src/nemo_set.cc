@@ -260,7 +260,7 @@ SIterator* Nemo::SScan(const std::string &key, uint64_t limit, bool use_snapshot
 
     IteratorOptions iter_options("", limit, read_options);
 
-    return new SIterator(it, iter_options, key); 
+    return new SIterator(it, set_db_.get(), iter_options, key); 
 }
 
 Status Nemo::SMembers(const std::string &key, std::vector<std::string> &members) {
@@ -883,5 +883,5 @@ SmetaIterator * Nemo::SmetaScan( const std::string &start, const std::string &en
     
     rocksdb::Iterator *it = set_db_->NewIterator(read_options);
     it->Seek(key_start);
-    return new SmetaIterator(it,iter_options,start); 
+    return new SmetaIterator(it,set_db_.get() ,iter_options,start); 
 }

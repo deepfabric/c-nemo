@@ -2,17 +2,7 @@
 #include <algorithm>
 //volume scan
 
-nemo::VolumeIterator::~VolumeIterator(){
-  if(use_snapshot_)
-    n->hash_db_->ReleaseSnapshot(Hit->read_options().snapshot);
-  if(use_snapshot_)
-    n->list_db_->ReleaseSnapshot(Lit->read_options().snapshot);
-  if(use_snapshot_)
-    n->set_db_->ReleaseSnapshot(Sit->read_options().snapshot);
-  if(use_snapshot_)
-    n->zset_db_->ReleaseSnapshot(Zit->read_options().snapshot);
-  if(use_snapshot_)
-    n->kv_db_->ReleaseSnapshot(Kit->read_options().snapshot);            
+nemo::VolumeIterator::~VolumeIterator(){          
   delete Hit;
   delete Lit;
   delete Sit;
@@ -20,7 +10,7 @@ nemo::VolumeIterator::~VolumeIterator(){
   delete Kit;
 }
 nemo::VolumeIterator::VolumeIterator(Nemo * nemo, const std::string  &start,const std::string &end, uint64_t limit, bool use_snapshot):
-                    n(nemo),use_snapshot_(use_snapshot_),end_(end),limit_(limit),count(0),kvt(0){
+                    n(nemo),end_(end),limit_(limit),count(0),kvt(0){
   Hit = n->HmetaScan(start,end,limit,use_snapshot);
   Lit = n->LmetaScan(start,end,limit,use_snapshot);
   Sit = n->SmetaScan(start,end,limit,use_snapshot);

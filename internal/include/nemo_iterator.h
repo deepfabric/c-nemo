@@ -1,6 +1,7 @@
 #ifndef NEMO_INCLUDE_NEMO_ITERATOR_H_
 #define NEMO_INCLUDE_NEMO_ITERATOR_H_
 #include "rocksdb/db.h"
+#include "db_nemo_impl.h"
 #include "nemo_const.h"
 #include "nemo_meta.h"
 
@@ -27,8 +28,10 @@ struct IteratorOptions {
 
 class Iterator {
 public:
-    Iterator(rocksdb::Iterator *it, const IteratorOptions& iter_options);
+    Iterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo,const IteratorOptions& iter_options);
     virtual ~Iterator() {
+      if(ioptions_.read_options.snapshot!=nullptr)
+        db_nemo_->ReleaseSnapshot(ioptions_.read_options.snapshot);
       delete it_;
     }
 
@@ -42,12 +45,11 @@ public:
 
 protected:
     bool valid_;
-    bool use_snapshot_;
-
 private:
     bool Check();
     
     rocksdb::Iterator *it_;
+    rocksdb::DBNemo * db_nemo_;    
     IteratorOptions ioptions_;
 
     //No Copying Allowed
@@ -57,7 +59,7 @@ private:
 
 class KIterator : public Iterator {
 public:
-    KIterator(rocksdb::Iterator *it, const IteratorOptions iter_options);
+    KIterator(rocksdb::Iterator *it, rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options);
     virtual void Next();
     virtual void Skip(int64_t offset);
     virtual bool Valid();
@@ -77,7 +79,7 @@ private:
 
 class HIterator : public Iterator {
 public:
-    HIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key);
+    HIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key);
     virtual void Next();
     virtual void Skip(int64_t offset);
     virtual bool Valid();
@@ -99,7 +101,7 @@ private:
 
 class ZIterator : public Iterator {
 public:
-    ZIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key);
+    ZIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key);
     virtual bool Valid();
     virtual void Skip(int64_t offset);
     virtual void Next();
@@ -122,7 +124,7 @@ private:
 
 class ZLexIterator : public Iterator {
 public:
-    ZLexIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key);
+    ZLexIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key);
     virtual bool Valid();
     virtual void Skip(int64_t offset);
     virtual void Next();
@@ -142,7 +144,7 @@ private:
 
 class SIterator : public Iterator {
 public:
-    SIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key);
+    SIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key);
     virtual void Skip(int64_t offset);
     virtual void Next();
     virtual bool Valid();
@@ -162,7 +164,7 @@ private:
 
 class HmetaIterator : public Iterator{
 public:
-    HmetaIterator(rocksdb::Iterator *it, const IteratorOptions iter_options,const rocksdb::Slice &key);
+    HmetaIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options,const rocksdb::Slice &key);
     virtual void Next();
     virtual void Skip(int64_t offset);
     virtual bool Valid();
@@ -178,7 +180,7 @@ private:
 
 class LmetaIterator : public Iterator{
 public:
-    LmetaIterator(rocksdb::Iterator *it, const IteratorOptions iter_options,const rocksdb::Slice &key);
+    LmetaIterator(rocksdb::Iterator *it, rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options,const rocksdb::Slice &key);
     virtual void Next();
     virtual void Skip(int64_t offset);
     virtual bool Valid();
@@ -194,7 +196,7 @@ private:
 
 class SmetaIterator : public Iterator{
 public:
-    SmetaIterator(rocksdb::Iterator *it, const IteratorOptions iter_options,const rocksdb::Slice &key);
+    SmetaIterator(rocksdb::Iterator *it, rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options,const rocksdb::Slice &key);
     virtual void Next();
     virtual void Skip(int64_t offset);
     virtual bool Valid();
@@ -210,7 +212,7 @@ private:
 
 class ZmetaIterator : public Iterator{
 public:
-    ZmetaIterator(rocksdb::Iterator *it, const IteratorOptions iter_options,const rocksdb::Slice &key);
+    ZmetaIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options,const rocksdb::Slice &key);
     virtual void Next();
     virtual void Skip(int64_t offset);
     virtual bool Valid();

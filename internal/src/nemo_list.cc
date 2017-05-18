@@ -1353,5 +1353,5 @@ LmetaIterator * Nemo::LmetaScan( const std::string &start, const std::string &en
     
     rocksdb::Iterator *it = list_db_->NewIterator(read_options);
     it->Seek(key_start);
-    return new LmetaIterator(it,iter_options,start); 
+    return new LmetaIterator(it, list_db_.get(), iter_options,start); 
 }
