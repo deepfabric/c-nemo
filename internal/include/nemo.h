@@ -252,9 +252,6 @@ public:
     KIterator* KScanWithHandle(rocksdb::DBNemo* db,const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot = false);
     Status KDelWithHandle(rocksdb::DBNemo* db,const std::string &key, int64_t *res);
 
-    void RawScanSave(const DBType type,const std::string &start, const std::string &end, bool use_snapshot);
-
-
     // ==============Server=====================
     Status BGSave(Snapshots &snapshots, const std::string &db_path = ""); 
     Status BGSaveGetSnapshot(Snapshots &snapshots);
@@ -291,10 +288,11 @@ public:
     Status HashRawScanSave(const std::string path,const std::string &start, const std::string &end, bool use_snapshot);
     Status ListRawScanSave(const std::string path,const std::string &start, const std::string &end, bool use_snapshot);
     Status SetRawScanSave(const std::string path,const std::string &start, const std::string &end, bool use_snapshot) ;    
-    Status ZsetRawScanSave(const std::string path,const std::string &start, const std::string &end, bool use_snapshot);
-    Status RawScanSaveAll(const std::string path,const std::string &start, const std::string &end, bool use_snapshot);   
+    Status ZsetRawScanSave(const std::string path,const std::string &start, const std::string &end, bool use_snapshot);  
     void HashRawScan(const std::string &start, const std::string &end, bool use_snapshot); 
     void ZsetRawScan(const std::string path,const std::string &start, const std::string &end, bool use_snapshot);
+
+    Status RawScanSaveAll(const std::string path,const std::string &start, const std::string &end, bool use_snapshot);     
     Status IngestFile(const std::string path);
     Status RangeDel(const std::string  & start, const std::string & end, uint64_t limit);
     Status RangeDelWithHandle(rocksdb::DBNemo * db,const std::string  & start, const std::string & end, uint64_t limit);    

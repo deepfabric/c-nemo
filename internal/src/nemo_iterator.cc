@@ -6,8 +6,9 @@
 #include "nemo_zset.h"
 #include "xdebug.h"
 
-nemo::Iterator::Iterator(rocksdb::Iterator *it, const IteratorOptions& iter_options)
+nemo::Iterator::Iterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions& iter_options)
   : it_(it),
+    db_nemo_(db_nemo),
     ioptions_(iter_options) {
       Check();
     }
@@ -78,8 +79,8 @@ void nemo::Iterator::Next() {
 }
 
 // KV
-nemo::KIterator::KIterator(rocksdb::Iterator *it, const IteratorOptions iter_options)
-  : Iterator(it, iter_options) {
+nemo::KIterator::KIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options)
+  : Iterator(it, db_nemo, iter_options) {
   CheckAndLoadData();
   }
 
@@ -107,8 +108,8 @@ void nemo::KIterator::Skip(int64_t offset) {
 }
 
 // HASH
-nemo::HIterator::HIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key)
-  : Iterator(it, iter_options) {
+nemo::HIterator::HIterator(rocksdb::Iterator *it, rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key)
+  : Iterator(it,db_nemo,iter_options) {
     this->key_.assign(key.data(), key.size());
     CheckAndLoadData();
   }
@@ -147,8 +148,8 @@ void nemo::HIterator::Skip(int64_t offset) {
 }
 
 // ZSET
-nemo::ZIterator::ZIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key)
-  : Iterator(it, iter_options) {
+nemo::ZIterator::ZIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key)
+  : Iterator(it,db_nemo, iter_options) {
     this->key_.assign(key.data(), key.size());
     CheckAndLoadData();
   }
@@ -184,8 +185,8 @@ void nemo::ZIterator::Skip(int64_t offset) {
 }
 
 // ZLexIterator
-nemo::ZLexIterator::ZLexIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key)
-  : Iterator(it, iter_options) {
+nemo::ZLexIterator::ZLexIterator(rocksdb::Iterator *it, rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key)
+  : Iterator(it,db_nemo, iter_options) {
     this->key_.assign(key.data(), key.size());
     CheckAndLoadData();
   }
@@ -221,8 +222,8 @@ void nemo::ZLexIterator::Skip(int64_t offset) {
 }
 
 // SET
-nemo::SIterator::SIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key)
-  : Iterator(it, iter_options) {
+nemo::SIterator::SIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key)
+  : Iterator(it, db_nemo, iter_options) {
     this->key_.assign(key.data(), key.size());
     CheckAndLoadData();
   }
@@ -259,8 +260,8 @@ void nemo::SIterator::Skip(int64_t offset) {
 }
 
 // HASH meta key
-nemo::HmetaIterator::HmetaIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key)
-  : Iterator(it, iter_options) {
+nemo::HmetaIterator::HmetaIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key)
+  : Iterator(it,db_nemo, iter_options) {
     this->key_.assign(key.data(), key.size());      
     CheckAndLoadData();
   }
@@ -295,8 +296,8 @@ void nemo::HmetaIterator::Skip(int64_t offset) {
 }
 
 // List meta key
-nemo::LmetaIterator::LmetaIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key)
-  : Iterator(it, iter_options) {
+nemo::LmetaIterator::LmetaIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key)
+  : Iterator(it,db_nemo, iter_options) {
     this->key_.assign(key.data(), key.size());      
     CheckAndLoadData();
   }
@@ -331,8 +332,8 @@ void nemo::LmetaIterator::Skip(int64_t offset) {
 }
 
 // Set meta key
-nemo::SmetaIterator::SmetaIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key)
-  : Iterator(it, iter_options) {
+nemo::SmetaIterator::SmetaIterator(rocksdb::Iterator *it, rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key)
+  : Iterator(it,db_nemo, iter_options) {
     this->key_.assign(key.data(), key.size());      
     CheckAndLoadData();
   }
@@ -367,8 +368,8 @@ void nemo::SmetaIterator::Skip(int64_t offset) {
 }
 
 // ZSet meta key
-nemo::ZmetaIterator::ZmetaIterator(rocksdb::Iterator *it, const IteratorOptions iter_options, const rocksdb::Slice &key)
-  : Iterator(it, iter_options) {
+nemo::ZmetaIterator::ZmetaIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key)
+  : Iterator(it,db_nemo, iter_options) {
     this->key_.assign(key.data(), key.size());      
     CheckAndLoadData();
   }
