@@ -147,7 +147,7 @@ public:
     Status HVals(const std::string &key, std::vector<std::string> &vals);
     Status HIncrby(const std::string &key, const std::string &field, int64_t by, std::string &new_val);
     Status HIncrbyfloat(const std::string &key, const std::string &field, double by, std::string &new_val);
-    HmetaIterator * HmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot = true);
+    HmetaIterator * HmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot );
     bool HSize(const std::string &key, HashMeta & meta);
     int IncrHSize(const std::string &key, int64_t incrlen ,int64_t incrvol, rocksdb::WriteBatch &writebatch);
 
@@ -166,7 +166,7 @@ public:
     Status RPopLPush(const std::string &src, const std::string &dest, std::string &val);
     Status LInsert(const std::string &key, Position pos, const std::string &pivot, const std::string &val, int64_t *llen);
     Status LRem(const std::string &key, const int64_t count, const std::string &val, int64_t *rem_count);
-    LmetaIterator * LmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot = true);
+    LmetaIterator * LmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot );
 
     // ==============ZSet=====================
     Status ZAdd(const std::string &key, const double score, const std::string &member, int64_t *res);
@@ -249,7 +249,12 @@ public:
         return db->Put(rocksdb::WriteOptions(),key,value);
     }
 
-    KIterator* KScanWithHandle(rocksdb::DBNemo* db,const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot = false);
+    Status DeleteWithHandle(rocksdb::DBNemo* db,const std::string & key)
+    {
+        return db->Delete(rocksdb::WriteOptions(),key);
+    }
+
+    KIterator* KScanWithHandle(rocksdb::DBNemo* db,const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot = true);
     Status KDelWithHandle(rocksdb::DBNemo* db,const std::string &key, int64_t *res);
 
     // ==============Server=====================
