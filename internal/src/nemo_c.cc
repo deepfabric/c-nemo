@@ -22,6 +22,7 @@ using nemo::DBType;
 using nemo::Position;
 using nemo::Aggregate;
 using nemo::Iterator;
+using nemo::RawIterator;
 using nemo::KIterator;
 using nemo::HIterator;
 using nemo::ZIterator;
@@ -44,6 +45,7 @@ extern "C"	{
 	struct nemo_t {	Nemo * rep;	};
 	struct nemo_options_t { Options rep; };
 	struct nemo_Iterator_t { Iterator * rep;};
+	struct nemo_RawIterator_t { RawIterator * rep;};	
 	struct nemo_KIterator_t { KIterator * rep;};
 	struct nemo_HIterator_t { HIterator * rep;};
 	struct nemo_ZIterator_t { ZIterator * rep;};
@@ -311,14 +313,38 @@ extern "C"	{
 	void nemo_Strlen(nemo_t * nemo,const char * key, const size_t keylen, int64_t * len, char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->Strlen(std::string(key,keylen),len));
 	}
-/*	
-	nemo_KIterator_t  * nemo_KScan(const char * start,const char * end,unsigned int64_t limit,bool use_snapshot){
+	
+	nemo_KIterator_t  * nemo_KScan(nemo_t *nemo,const char * start,const size_t startlen, const char * end, const size_t endlen, uint64_t limit,bool use_snapshot){
 		uint64_t limit_cpp = limit;
-		nemo_KIterator_t * nemo_KIterator_p = new nemo_KIterator_t;
-		nemo_KIterator_p->rep = nemo->rep->KScan(std::string(start),std::string(edn),limit_cpp,use_snapshot);
-		return nemo_KIterator_p;		
+		nemo_KIterator_t * it = new nemo_KIterator_t;
+		it->rep = nemo->rep->KScan(std::string(start,startlen),std::string(end,endlen),limit_cpp,use_snapshot);
+		return it;		
 	}
-*/
+
+	void KNext(nemo_KIterator_t * it)
+	{
+		it->rep->Next();
+	}
+	bool KValid(nemo_KIterator_t * it){
+		return it->rep->Valid();	
+	}
+	void Kkey(nemo_KIterator_t * it,char ** key ,size_t* keylen)
+	{
+		*key = CopyString(it->rep->key());
+		*keylen = it->rep->key().size();
+	}
+	void Kvalue(nemo_KIterator_t * it,char ** value ,size_t* valuelen)
+	{
+		*value = CopyString(it->rep->value());
+		*valuelen = it->rep->value().size();
+	}
+
+	void KIteratorFree(nemo_KIterator_t * it)
+	{
+		delete it->rep;
+		delete it;
+	}
+
 
 	void nemo_Scan(nemo_t * nemo, int64_t cursor, const char * pattern, const size_t patternlen, int64_t count, \
 				           int * key_num, char *** key_list,size_t ** key_list_strlen, int64_t * cursor_ret, char ** errptr){
@@ -1072,37 +1098,30 @@ extern "C"	{
 		nemo_SaveError(errptr,nemo->rep->DeleteWithHandle(db->rep,keystr));	
 	}
 
-	nemo_KIterator_t *	nemo_KScanWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,
-								const char * start, const size_t startlen, 
-								const char * end ,const size_t endlen,
-								uint64_t limit, bool use_snapshot)
+	nemo_RawIterator_t * nemo_KScanWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,bool use_snapshot)
 	{
-		nemo_KIterator_t * it = new nemo_KIterator_t;
-		std::string startstr(start,startlen);
-		std::string endstr(end,endlen);			
-		it->rep = nemo->rep->KScanWithHandle(db->rep,start,end,limit,false);
+		nemo_RawIterator_t * it = new nemo_RawIterator_t;	
+		it->rep = nemo->rep->KScanWithHandle(db->rep,use_snapshot);
 		return it;
 	}
-
-	void KNext(nemo_KIterator_t * it)
+	void RawNext(nemo_RawIterator_t * it)
 	{
 		it->rep->Next();
 	}
-	bool KValid(nemo_KIterator_t * it){
+	bool RawValid(nemo_RawIterator_t * it){
 		return it->rep->Valid();	
 	}
-	void Kkey(nemo_KIterator_t * it,char ** key ,size_t* keylen)
+	void RawKey(nemo_RawIterator_t * it,char ** key ,size_t* keylen)
 	{
 		*key = CopyString(it->rep->key());
 		*keylen = it->rep->key().size();
 	}
-	void Kvalue(nemo_KIterator_t * it,char ** value ,size_t* valuelen)
+	void RawValue(nemo_RawIterator_t * it,char ** value ,size_t* valuelen)
 	{
 		*value = CopyString(it->rep->value());
 		*valuelen = it->rep->value().size();
 	}
-
-	void KIteratorFree(nemo_KIterator_t * it)
+	void RawIteratorFree(nemo_RawIterator_t * it)
 	{
 		delete it->rep;
 		delete it;

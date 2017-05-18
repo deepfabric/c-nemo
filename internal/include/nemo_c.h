@@ -15,6 +15,7 @@ extern "C" {
 typedef	struct nemo_t nemo_t;
 typedef	struct nemo_options_t nemo_options_t;
 typedef	struct nemo_Iterator_t nemo_Iterator_t;
+typedef	struct nemo_RawIterator_t nemo_RawIterator_t;
 typedef	struct nemo_KIterator_t nemo_KIterator_t;
 typedef	struct nemo_HIterator_t nemo_HIterator_t;
 typedef	struct nemo_ZIterator_t nemo_ZIterator_t;
@@ -99,6 +100,8 @@ extern void nemo_MSet(nemo_t * nemo, int const num,const char ** key, size_t * k
 
 extern void nemo_MGet(nemo_t * nemo,  const int num, const char ** key, size_t * keylen, \
 	 		             		                                     char ** val, size_t * vallen, char ** errs);
+extern nemo_KIterator_t  * nemo_KScan(nemo_t *nemo, const char * start,const size_t startlen, 
+								const char * end, const size_t endlen, uint64_t limit,bool use_snapshot);
 
 extern void nemo_Scan(nemo_t * nemo, int64_t cursor, const char * pattern, const size_t patternlen, int64_t count, \
 				           int * key_num, char *** key_list,size_t ** key_list_strlen, int64_t * cursor_ret, char ** errptr);
@@ -355,10 +358,7 @@ extern void nemo_DeleteWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,
 								const char * key, const size_t keylen, 
 								char ** errptr); 
 
-extern 	nemo_KIterator_t *	nemo_KScanWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,
-								const char * start, const size_t startlen, 
-								const char * end ,const size_t endlen,
-								uint64_t limit, bool use_snapshot);
+extern nemo_RawIterator_t * nemo_KScanWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,bool use_snapshot);
 extern void KNext(nemo_KIterator_t * it);
 extern bool KValid(nemo_KIterator_t * it);
 extern void Kkey(nemo_KIterator_t * it,char ** key ,size_t* keylen);
