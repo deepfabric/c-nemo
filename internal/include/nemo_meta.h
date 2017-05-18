@@ -25,7 +25,7 @@ struct DefaultMeta : public NemoMeta {
   int64_t len;
   int64_t vol;
 
-  DefaultMeta() : len(0) {}
+  DefaultMeta() : len(0),vol(0) {}
   explicit DefaultMeta(int64_t _len,int64_t _vol):len(_len),vol(_vol) {}
   virtual bool DecodeFrom(const std::string& raw_meta) {
     if (raw_meta.size() != sizeof(int64_t)+sizeof(int64_t)) {

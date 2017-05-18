@@ -17,6 +17,8 @@
 #include "util.h"
 #include "xdebug.h"
 #include "rocksdb/sst_file_writer.h"
+//#include "db_nemo_impl.h"
+//#include "nemo_meta.h"
 #include <algorithm>
 #include <vector>
 
@@ -842,6 +844,13 @@ Status Nemo::KvRawScanSave(const std::string path,const std::string &start, cons
 
     std::string raw_key;
     it->Seek(en_start);
+    if(!it->Valid()){
+      std::string value_with_ver_ts="";
+      rocksdb::DBNemoImpl::AppendVersionAndTS("",&value_with_ver_ts,kv_db_->GetEnv(),0,0);
+      f.Add("rubish_to_delete",value_with_ver_ts);
+      f.Finish();
+      return Status::OK();
+    }
     for(int i=0;it->Valid();it->Next(),i++){
         raw_key.clear();
         raw_key.append(it->key().data(),it->key().size());
@@ -893,6 +902,17 @@ Status Nemo::HashRawScanSave(const std::string path,const std::string &start, co
 
     std::string raw_key;
     it->Seek(en_start);
+
+    if(!it->Valid()){
+      HashMeta meta;
+      std::string meta_val;
+      meta.EncodeTo(meta_val);
+      rocksdb::DBNemoImpl::AppendVersionAndTS("",&meta_val,hash_db_->GetEnv(),0,0);
+      f.Add("HRubish_to_delete",meta_val);
+      f.Finish();
+      return Status::OK();
+    }
+
     for(int i=0;it->Valid();it->Next(),i++){
         raw_key.clear();
         raw_key.append(it->key().data(),it->key().size());
@@ -1069,6 +1089,18 @@ Status Nemo::ListRawScanSave(const std::string path,const std::string &start, co
 
     std::string raw_key;
     it->Seek(en_start);
+
+    if(!it->Valid()){
+      ListMeta meta;
+      std::string meta_val;
+      meta.EncodeTo(meta_val);
+
+      rocksdb::DBNemoImpl::AppendVersionAndTS("",&meta_val,list_db_->GetEnv(),0,0);
+      f.Add("LRubish_to_delete",meta_val);
+      f.Finish();
+      return Status::OK();
+    }
+
     for(int i=0;it->Valid();it->Next(),i++){
         raw_key.clear();
         raw_key.append(it->key().data(),it->key().size());
@@ -1161,6 +1193,18 @@ Status Nemo::SetRawScanSave(const std::string path,const std::string &start, con
 
     std::string raw_key;
     it->Seek(en_start);
+
+    if(!it->Valid()){
+      SetMeta meta;
+      std::string meta_val;
+      meta.EncodeTo(meta_val);
+
+      rocksdb::DBNemoImpl::AppendVersionAndTS("",&meta_val,set_db_->GetEnv(),0,0);
+      f.Add("SRubish_to_delete",meta_val);
+      f.Finish();
+      return Status::OK();
+    }
+
     for(int i=0;it->Valid();it->Next(),i++){
         raw_key.clear();
         raw_key.append(it->key().data(),it->key().size());
@@ -1253,6 +1297,18 @@ Status Nemo::ZsetRawScanSave(const std::string path,const std::string &start, co
 
     std::string raw_key;
     it->Seek(en_start);
+
+    if(!it->Valid()){
+      ZSetMeta meta;
+      std::string meta_val;
+      meta.EncodeTo(meta_val);
+
+      rocksdb::DBNemoImpl::AppendVersionAndTS("",&meta_val,zset_db_->GetEnv(),0,0);
+      f.Add("SRubish_to_delete",meta_val);
+      f.Finish();
+      return Status::OK();
+    }
+
     for(int i=0;it->Valid();it->Next(),i++){
         raw_key.clear();
         raw_key.append(it->key().data(),it->key().size());
@@ -1488,7 +1544,7 @@ Status Nemo::IngestFile(const std::string path)
   Status s ;
   s = kv_db_->IngestExternalFile({path+"/kv.sst"},rocksdb::IngestExternalFileOptions());
   if(!s.ok())
-    return s;  
+    return s;
 
   s = hash_db_->IngestExternalFile({path+"/hash.sst"},rocksdb::IngestExternalFileOptions());
   if(!s.ok())
