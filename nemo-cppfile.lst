@@ -196,3 +196,4 @@ internal/src/nemo_set.cc
 internal/src/nemo_zset.cc
 internal/src/port.cc
 internal/src/util.cc
+internal/src/nemo_volume_iterator.cc
