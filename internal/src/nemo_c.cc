@@ -1121,6 +1121,11 @@ extern "C"	{
 		*value = CopyString(it->rep->value());
 		*valuelen = it->rep->value().size();
 	}
+	void RawSeek(nemo_RawIterator_t * it,const char * key,const size_t keylen)
+	{
+		std::string strkey(key,keylen);
+		it->rep->Seek(strkey);
+	}
 	void RawIteratorFree(nemo_RawIterator_t * it)
 	{
 		delete it->rep;

@@ -102,6 +102,11 @@ extern void nemo_MGet(nemo_t * nemo,  const int num, const char ** key, size_t *
 	 		             		                                     char ** val, size_t * vallen, char ** errs);
 extern nemo_KIterator_t  * nemo_KScan(nemo_t *nemo, const char * start,const size_t startlen, 
 								const char * end, const size_t endlen, uint64_t limit,bool use_snapshot);
+extern void KNext(nemo_KIterator_t * it);
+extern bool KValid(nemo_KIterator_t * it);
+extern void Kkey(nemo_KIterator_t * it,char ** key ,size_t* keylen);
+extern void Kvalue(nemo_KIterator_t * it,char ** value ,size_t* valuelen);
+extern void KIteratorFree(nemo_KIterator_t * it);
 
 extern void nemo_Scan(nemo_t * nemo, int64_t cursor, const char * pattern, const size_t patternlen, int64_t count, \
 				           int * key_num, char *** key_list,size_t ** key_list_strlen, int64_t * cursor_ret, char ** errptr);
@@ -359,11 +364,13 @@ extern void nemo_DeleteWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,
 								char ** errptr); 
 
 extern nemo_RawIterator_t * nemo_RawScanWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,bool use_snapshot);
-extern void KNext(nemo_KIterator_t * it);
-extern bool KValid(nemo_KIterator_t * it);
-extern void Kkey(nemo_KIterator_t * it,char ** key ,size_t* keylen);
-extern void Kvalue(nemo_KIterator_t * it,char ** value ,size_t* valuelen);
-extern void KIteratorFree(nemo_KIterator_t * it);
+extern void RawNext(nemo_RawIterator_t * it);
+extern bool RawValid(nemo_RawIterator_t * it);
+extern void RawKey(nemo_RawIterator_t * it,char ** key ,size_t* keylen);
+extern void RawValue(nemo_RawIterator_t * it,char ** value ,size_t* valuelen);
+extern void RawSeek(nemo_RawIterator_t * it,const char * key,const size_t keylen);
+extern void RawIteratorFree(nemo_RawIterator_t * it);
+
 extern nemo_VolumeIterator_t * createVolumeIterator(nemo_t * nemo,
 								const char * start, const size_t startlen, 
 								const char * end ,const size_t endlen,
