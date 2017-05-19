@@ -112,8 +112,10 @@ Status Nemo::ZGetMetaByKey(const std::string& key, ZSetMeta& meta) {
   if (!s.ok()) {
     return s;
   }
-  meta.DecodeFrom(meta_val);
-  return Status::OK();
+  if(meta.DecodeFrom(meta_val))
+    return Status::OK();
+  else
+    return Status::Corruption("parse zsetmeta error");
 }
 
 Status Nemo::ZChecknRecover(const std::string& key) {
@@ -226,7 +228,7 @@ int64_t Nemo::ZCard(const std::string &key) {
     s = zset_db_->Get(rocksdb::ReadOptions(), size_key, &val);
     if (s.ok()) {
         if (val.size() != sizeof(uint64_t)*2) {
-            return 0;
+            return -1;
         }
         int64_t ret = *(int64_t *)val.data();
         return ret < 0? 0 : ret;
@@ -247,7 +249,10 @@ Status Nemo::ZVolume(const std::string &key,int64_t* s_len, int64_t* s_vol) {
             return Status::Corruption("set sizekey value size error");
         }
         ZSetMeta meta;
-        int64_t ret = meta.DecodeFrom(val);
+        if(!meta.DecodeFrom(val))
+        {
+            return Status::Corruption("parse zsetmeta error");
+        }
         *s_len = meta.len;
         *s_vol = meta.vol;
         return s;
@@ -1024,7 +1029,10 @@ Status Nemo::ZDelKey(const std::string &key, int64_t *res) {
     s = zset_db_->Get(rocksdb::ReadOptions(), size_key, &val);
     ZSetMeta meta;     
     if (s.ok()) {
-      meta.DecodeFrom(val);  
+      if(!meta.DecodeFrom(val))
+      {
+        return Status::Corruption("parse zsetmeta error");
+      }
       if (meta.len <= 0) {
         s = Status::NotFound("");
       } else {
@@ -1057,7 +1065,10 @@ Status Nemo::ZExpire(const std::string &key, const int32_t seconds, int64_t *res
         *res = 0;
     } else if (s.ok()) {
       ZSetMeta meta;
-      meta.DecodeFrom(val);        
+      if(!meta.DecodeFrom(val))
+      {
+        return Status::Corruption("parse zsetmeta error");
+      }        
       if (meta.len <= 0) {
         return Status::NotFound("empty zset");
       }
@@ -1136,7 +1147,10 @@ Status Nemo::ZExpireat(const std::string &key, const int32_t timestamp, int64_t 
         *res = 0;
     } else if (s.ok()) {
       ZSetMeta meta;
-      meta.DecodeFrom(val);        
+      if(!meta.DecodeFrom(val))
+      {
+        return Status::Corruption("parse zsetmeta error");
+      }
       if (meta.len <= 0) {
         return Status::NotFound("empty zset");
       }

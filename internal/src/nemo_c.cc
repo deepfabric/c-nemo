@@ -1135,12 +1135,12 @@ extern "C"	{
 	nemo_VolumeIterator_t * createVolumeIterator(nemo_t * nemo,
 								const char * start, const size_t startlen, 
 								const char * end ,const size_t endlen,
-								uint64_t limit, bool use_snapshot)
+								bool use_snapshot)
 	{
 		nemo_VolumeIterator_t * it = new nemo_VolumeIterator_t;
 		std::string startstr(start,startlen);
 		std::string endstr(end,endlen);	
-		it->rep = new nemo::VolumeIterator(nemo->rep,startstr,endstr,limit,false);
+		it->rep = new nemo::VolumeIterator(nemo->rep,startstr,endstr,false);
 		return it;
 	}
 
@@ -1169,21 +1169,21 @@ extern "C"	{
 
 	void nemo_RangeDel(nemo_t * nemo,const char * start, const size_t startlen, 
 								const char * end ,const size_t endlen,
-								uint64_t limit,char ** errptr)
+								char ** errptr)
 	{
 		std::string startstr(start,startlen);
 		std::string endstr(end,endlen);	
-		nemo_SaveError(errptr,nemo->rep->RangeDel(startstr,endstr,limit));	
+		nemo_SaveError(errptr,nemo->rep->RangeDel(startstr,endstr));	
 	}
 
 	void nemo_RangeDelWithHandle(nemo_t * nemo, nemo_DBNemo_t * db,
 								const char * start, const size_t startlen, 
 								const char * end ,const size_t endlen,
-								uint64_t limit,char ** errptr)
+								char ** errptr)
 	{
 		std::string startstr(start,startlen);
 		std::string endstr(end,endlen);	
-		nemo_SaveError(errptr,nemo->rep->RangeDelWithHandle(db->rep,startstr,endstr,limit));	
+		nemo_SaveError(errptr,nemo->rep->RangeDelWithHandle(db->rep,startstr,endstr));	
 	}
 
 	void nemo_RawScanSaveAll(nemo_t * nemo, const char * path, const char * start, size_t startlen,

@@ -16,8 +16,10 @@ Status Nemo::SGetMetaByKey(const std::string& key, SetMeta& meta) {
   if (!s.ok()) {
     return s;
   }
-  meta.DecodeFrom(meta_val);
-  return Status::OK();
+  if(meta.DecodeFrom(meta_val))
+    return Status::OK();
+  else
+    return Status::Corruption("parse setmeta error");    
 }
 
 Status Nemo::SChecknRecover(const std::string& key) {
@@ -238,7 +240,8 @@ Status Nemo::SVolume(const std::string &key,int64_t* s_len, int64_t* s_vol) {
             return Status::Corruption("set sizekey value size error");
         }
         SetMeta meta;
-        int64_t ret = meta.DecodeFrom(val);
+        if(!meta.DecodeFrom(val))
+            return Status::Corruption("parse setmeta error");        
         *s_len = meta.len;
         *s_vol = meta.vol;
         return s;
@@ -723,7 +726,8 @@ Status Nemo::SDelKey(const std::string &key, int64_t *res) {
     s = set_db_->Get(rocksdb::ReadOptions(), size_key, &val);
     SetMeta meta;    
     if (s.ok()) {
-      meta.DecodeFrom(val);
+      if(!meta.DecodeFrom(val))
+        return Status::Corruption("parse setmeta error");
       if (meta.len <= 0) {
         s = Status::NotFound("");
       } else {
@@ -754,7 +758,8 @@ Status Nemo::SExpire(const std::string &key, const int32_t seconds, int64_t *res
         *res = 0;
     } else if (s.ok()) {
       SetMeta meta;
-      meta.DecodeFrom(val);
+      if(!meta.DecodeFrom(val))
+        return Status::Corruption("parse setmeta error");       
       if (meta.len <= 0) {
         return Status::NotFound("");
       }
@@ -834,7 +839,8 @@ Status Nemo::SExpireat(const std::string &key, const int32_t timestamp, int64_t 
         *res = 0;
     } else if (s.ok()) {
       SetMeta meta;
-      meta.DecodeFrom(val);
+      if(!meta.DecodeFrom(val))
+        return Status::Corruption("parse setmeta error");       
       if (meta.len <= 0) {
         return Status::NotFound("");
       }

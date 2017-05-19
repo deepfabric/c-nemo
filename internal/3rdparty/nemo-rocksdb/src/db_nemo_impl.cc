@@ -9,6 +9,9 @@
 
 namespace rocksdb {
 
+static NemoCompactionFilter* g_compaction_filter = nullptr;
+static NemoCompactionFilterFactory* g_compaction_filter_factory = nullptr;
+
 void DBNemoImpl::SanitizeOptions(ColumnFamilyOptions* options,
                                     Env* env, char meta_prefix) {
   if (options->compaction_filter) {

@@ -9,7 +9,7 @@ namespace nemo{
 
 class VolumeIterator {
 public:
-    VolumeIterator( Nemo * nemo,const std::string  & start, const std::string & end, uint64_t limit, bool use_snapshot=true);
+    VolumeIterator( Nemo * nemo,const std::string  & start, const std::string & end, uint64_t limit = 1LL << 60, bool use_snapshot=true);
     virtual ~VolumeIterator();
     std::string key();
     int64_t value();

@@ -300,8 +300,8 @@ public:
 
     Status RawScanSaveAll(const std::string path,const std::string &start, const std::string &end, bool use_snapshot);     
     Status IngestFile(const std::string path);
-    Status RangeDel(const std::string  & start, const std::string & end, uint64_t limit);
-    Status RangeDelWithHandle(rocksdb::DBNemo * db,const std::string  & start, const std::string & end, uint64_t limit);    
+    Status RangeDel(const std::string  & start, const std::string & end, uint64_t limit = 1LL << 60);
+    Status RangeDelWithHandle(rocksdb::DBNemo * db,const std::string  & start, const std::string & end, uint64_t limit = 1LL << 60);    
 
 private:
 

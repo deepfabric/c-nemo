@@ -45,7 +45,9 @@ void nemo::VolumeIterator::Init(){
   }  
   if(Kit->Valid())
   {
-    kvt.push_back(KVT{Kit->key(),Kit->value().size()+Kit->key().size(), DataType::kKv});
+    int64_t volume = 0;
+    volume += Kit->value().size()+Kit->key().size();
+    kvt.push_back(KVT{Kit->key(), volume, DataType::kKv});
   }
   make_heap(kvt.begin(),kvt.end(),cmp);
   if(kvt.size()>0)
@@ -101,7 +103,9 @@ void nemo::VolumeIterator::Next(){
     case  DataType::kKv:
       Kit->Next();
         if(Kit->Valid()&& Kit->key()<=end_){
-            kvt.push_back(KVT{Kit->key(),Kit->value().size()+Kit->key().size(),DataType::kKv});
+            int64_t volume = 0;
+            volume += Kit->value().size()+Kit->key().size();
+            kvt.push_back(KVT{Kit->key(),volume,DataType::kKv});
             push_heap(kvt.begin(),kvt.end(),cmp);
       }
       break; 

@@ -16,8 +16,10 @@ Status Nemo::HGetMetaByKey(const std::string& key, HashMeta& meta) {
   if (!s.ok()) {
     return s;
   }
-  meta.DecodeFrom(meta_val);
-  return Status::OK();
+  if(!meta.DecodeFrom(meta_val))
+    return Status::Corruption("parse hashmeta error"); 
+  else
+    return Status::OK();
 }
 
 Status Nemo::HChecknRecover(const std::string& key) {
@@ -151,7 +153,8 @@ Status Nemo::HDelKey(const std::string &key, int64_t *res) {
     s = hash_db_->Get(rocksdb::ReadOptions(), size_key, &val);
     if (s.ok()) {
       HashMeta meta;
-      meta.DecodeFrom(val);
+      if(!meta.DecodeFrom(val))
+        return Status::Corruption("parse hashmeta error");       
       if (meta.len <= 0) {
         s = Status::NotFound("");
       } else {
@@ -181,7 +184,8 @@ Status Nemo::HExpire(const std::string &key, const int32_t seconds, int64_t *res
         *res = 0;
     } else if (s.ok()) {
       HashMeta meta;
-      meta.DecodeFrom(val);
+      if(!meta.DecodeFrom(val))
+        return Status::Corruption("parse hashmeta error");       
       if (meta.len <= 0) {
         return Status::NotFound("");
       }
@@ -275,7 +279,8 @@ Status Nemo::HExpireat(const std::string &key, const int32_t timestamp, int64_t 
         *res = 0;
     } else if (s.ok()) {
       HashMeta meta;
-      meta.DecodeFrom(val);
+      if(!meta.DecodeFrom(val))
+        return Status::Corruption("parse hashmeta error");   
       if (meta.len <= 0) {
         return Status::NotFound("");
       }

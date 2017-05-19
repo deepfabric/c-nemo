@@ -374,7 +374,7 @@ extern void RawIteratorFree(nemo_RawIterator_t * it);
 extern nemo_VolumeIterator_t * createVolumeIterator(nemo_t * nemo,
 								const char * start, const size_t startlen, 
 								const char * end ,const size_t endlen,
-								uint64_t limit, bool use_snapshot);
+								bool use_snapshot);
 extern void VolNext(nemo_VolumeIterator_t * it);
 extern bool VolValid(nemo_VolumeIterator_t * it);
 extern void Volkey(nemo_VolumeIterator_t * it,char ** key ,size_t* keylen);
@@ -382,11 +382,11 @@ extern void Volvalue(nemo_VolumeIterator_t * it,int64_t * value);
 extern void VolIteratorFree(nemo_VolumeIterator_t * it);
 extern 	void nemo_RangeDel(nemo_t * nemo,const char * start, const size_t startlen, 
 								const char * end ,const size_t endlen,
-								uint64_t limit,char ** errptr);
+								char ** errptr);
 extern 	void nemo_RangeDelWithHandle(nemo_t * nemo, nemo_DBNemo_t * db,
 								const char * start, const size_t startlen, 
 								const char * end ,const size_t endlen,
-								uint64_t limit,char ** errptr);
+								char ** errptr);
                                 
 extern void nemo_RawScanSaveAll(nemo_t * nemo, const char * path, const char * start, size_t startlen,
 												const char * end, size_t endlen,

@@ -1,7 +1,8 @@
 package cnemo
+
 // #cgo CPPFLAGS: -Iinternal/include
 // #cgo CPPFLAGS: -Iinternal/src
-// #cgo CPPFLAGS: -Iinternal/3rdparty/nemo-rocksdb/include 
+// #cgo CPPFLAGS: -Iinternal/3rdparty/nemo-rocksdb/include
 // #cgo CPPFLAGS: -Iinternal/3rdparty/nemo-rocksdb/rocksdb/include
 // #cgo CPPFLAGS: -Iinternal/3rdparty/nemo-rocksdb/rocksdb
 // #cgo CPPFLAGS: -Iinternal/3rdparty/nemo-rocksdb/rocksdb/util

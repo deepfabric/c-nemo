@@ -55,8 +55,10 @@ Status Nemo::LGetMetaByKey(const std::string& key, ListMeta& meta) {
   if (!s.ok()) {
     return s;
   }
-  meta.DecodeFrom(meta_val);
-  return Status::OK();
+  if(meta.DecodeFrom(meta_val))
+    return Status::OK();
+  else
+    return Status::Corruption("parse listmeta error");
 }
 Status Nemo::LChecknRecover(const std::string& key) {
   RecordLock l(&mutex_list_record_, key);
