@@ -21,10 +21,10 @@ int main() {
   n = new Nemo("/tmp/nemo_simple_test", options); 
   std::string res;
   Status s ;
-
-  s = n->HSet("Key", "field1", "val1");
+  int HSetRes;
+  s = n->HSet("Key", "field1", "val1", &HSetRes);
   assert(s.ok());
-  s = n->HSet("Key", "field2", "val2");
+  s = n->HSet("Key", "field2", "val2", &HSetRes);
   assert(s.ok());  
   int64_t l = n->HLen("Key");
   std::cout << "HLen return: " << l << std::endl;

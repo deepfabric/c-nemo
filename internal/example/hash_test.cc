@@ -36,17 +36,17 @@ int main()
     std::vector<std::string> values;
     std::vector<FV> fvs;
     std::vector<FVS> fvss;
-    
+    int HSetRes;
     for (int i = 0; i < 2; i++) {
       /*
        *  Test HSet
        */
       log_info("======Test HSet======");
-      s = n->HSet("tHSetKey", "field1", "value1");
-      s = n->HSet("tHSetKey", "field2", "value2");
-      s = n->HSet("tHSetKey", "field3", "value3");
-      s = n->HSet("tHSetKey", "field4", "value4");
-      s = n->HSet("tHSetKey", "field5", "value5");
+      s = n->HSet("tHSetKey", "field1", "value1", &HSetRes);
+      s = n->HSet("tHSetKey", "field2", "value2", &HSetRes);
+      s = n->HSet("tHSetKey", "field3", "value3", &HSetRes);
+      s = n->HSet("tHSetKey", "field4", "value4", &HSetRes);
+      s = n->HSet("tHSetKey", "field5", "value5", &HSetRes);
       log_info("Test HSet OK return %s", s.ToString().c_str());
       log_info("");
 
@@ -54,7 +54,7 @@ int main()
        *  Test HGet
        */
       log_info("======Test HGet======");
-      s = n->HSet("tHGetKey", "song", "tGetVal");
+      s = n->HSet("tHGetKey", "song", "tGetVal", &HSetRes, &HSetRes);
       res = "";
       s = n->HGet("tHGetKey", "song", &res);
       log_info("Test HGet OK return %s, result tHGetVal = %s", s.ToString().c_str(), res.c_str());
@@ -126,11 +126,11 @@ int main()
       delete hit;
     }
 
-    s = n->HSet("tHSetKey", "field11", "value11");
-    s = n->HSet("tHSetKey", "field21", "value21");
-    s = n->HSet("tHSetKey", "field31", "value31");
-    s = n->HSet("tHSetKey", "field41", "value41");
-    s = n->HSet("tHSetKey", "field51", "value51");
+    s = n->HSet("tHSetKey", "field11", "value11", &HSetRes);
+    s = n->HSet("tHSetKey", "field21", "value21", &HSetRes);
+    s = n->HSet("tHSetKey", "field31", "value31", &HSetRes);
+    s = n->HSet("tHSetKey", "field41", "value41", &HSetRes);
+    s = n->HSet("tHSetKey", "field51", "value51", &HSetRes);
 
     /*
      *  Test HGetall
@@ -167,7 +167,7 @@ int main()
     int64_t ttl;
 
     log_info("======Test HExpire======");
-    s = n->HSet("tHSetKey", "field11", "value11");
+    s = n->HSet("tHSetKey", "field11", "value11", &HSetRes);
     s = n->HExpire("tHSetKey", 7, &e_ret);
     log_info("Test HExpire with key=tHSetKey in 7s, return %s", s.ToString().c_str());
 
@@ -186,7 +186,7 @@ int main()
      *  Test Expireat
      */
     log_info("======Test HExpireat======");
-    s = n->HSet("tHSetKey", "field12", "value11");
+    s = n->HSet("tHSetKey", "field12", "value11", &HSetRes);
 
     std::time_t t = std::time(0);
     s = n->HExpireat("tHSetKey", t + 8, &e_ret);
@@ -203,7 +203,7 @@ int main()
     }
     log_info("");
 
-    s = n->HSet("tHSetKey", "field12", "value11");
+    s = n->HSet("tHSetKey", "field12", "value11", &HSetRes);
     s = n->HExpireat("tHSetKey", 8, &e_ret);
     log_info("Test HExpireat with key=tHSetKey at a passed timestamp=8, return %s", s.ToString().c_str());
     s = n->HGet("tHSetKey", "field12", &res);
@@ -218,7 +218,7 @@ int main()
      *  Test Persist 
      */
     log_info("======Test HPersist======");
-    s = n->HSet("tHSetKey", "field12", "value11");
+    s = n->HSet("tHSetKey", "field12", "value11", &HSetRes);
     s = n->HExpire("tHSetKey", 7, &e_ret);
     log_info("Test Persist with key=tHSetKey in 7s, return %s", s.ToString().c_str());
 

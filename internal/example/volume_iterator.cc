@@ -34,21 +34,22 @@ int main()
     assert(s.ok());
 
     log_info("======Test HSet======");
-    s = n->HSet("H1", "h1", "h1");
+    int HSetRes;
+    s = n->HSet("H1", "h1", "h1", &HSetRes);
     assert(s.ok());
-    s = n->HSet("H2", "h2", "h2");
+    s = n->HSet("H2", "h2", "h2", &HSetRes);
     assert(s.ok());     
-    s = n->HSet("H2", "hello", "world");
+    s = n->HSet("H2", "hello", "world", &HSetRes);
     assert(s.ok()); 
-    s = n->HSet("H2", "h1", "h1");
+    s = n->HSet("H2", "h1", "h1", &HSetRes);
     assert(s.ok());
     s = n->HDel("H2", "h1");
     assert(s.ok());
     int64_t count;
     s = n->Del("H1",&count);
-    s = n->HSet("H1", "h1", "h1");
+    s = n->HSet("H1", "h1", "h1", &HSetRes);
     assert(s.ok());
-    s = n->HSet("H3", "h3", "h3");
+    s = n->HSet("H3", "h3", "h3", &HSetRes);
     assert(s.ok()); 
     int64_t ts = 0;
     s = n->Expireat("H3",2147483000,&ts);

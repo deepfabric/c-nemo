@@ -21,12 +21,12 @@ int main()
 
     s = n->Set("tSetKey4", "tSetVal4", 300);
     sleep(2);
+    int HSetRes;
+    s = n->HSet("tHSetKey", "member1", "value1", &HSetRes);
+    s = n->HSet("tHSetKey", "member2", "value2", &HSetRes);
+    s = n->HSet("tHSetKey", "member3", "value3", &HSetRes);
 
-    s = n->HSet("tHSetKey", "member1", "value1");
-    s = n->HSet("tHSetKey", "member2", "value2");
-    s = n->HSet("tHSetKey", "member3", "value3");
-
-    s = n->HSet("tHSetKeyTTL", "member1", "value1");
+    s = n->HSet("tHSetKeyTTL", "member1", "value1", &HSetRes);
     
     int64_t za_res;
     s = n->ZAdd("key", 100.0, "zsetMember1", &za_res);
@@ -119,7 +119,7 @@ int main()
     snapshots.clear();
 
     s = n->Set("tSetKey1", "tSetVal1");
-    s = n->HSet("tHSetKey", "member1", "value1");
+    s = n->HSet("tHSetKey", "member1", "value1", &HSetRes);
 
     int64_t ret;
     s = n->Expire("tHSetKeyTTL", 30, &ret);
@@ -133,7 +133,7 @@ int main()
     sleep(2);
     s = n->Set("tSetKey1", "tSetVal1AfterSnapshot2");
     s = n->LPush("tLPushKey", "tLPushVal7AfterSnapshot2", &llen);
-    s = n->HSet("tHSetKey", "member1", "value1AfterSnapshot2");
+    s = n->HSet("tHSetKey", "member1", "value1AfterSnapshot2", &HSetRes);
     s = n->ZAdd("key", 100.0, "zsetMemberAfterSnapshot", &za_res);
     s = n->SAdd("key", "memberAfterSnapshot", &sadd_res);
 

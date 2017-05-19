@@ -56,7 +56,8 @@ void* ThreadMain1(void *arg) {
     gen_random(field, length);
     gen_random(value, length);
     st = NowMicros();
-    s = n->HSet(key, field, value);
+    int HSetRes;
+    s = n->HSet(key, field, value, &HSetRes);
     ed = NowMicros();
 
     t_sum += ed - st;

@@ -13,37 +13,43 @@ using namespace nemo;
 Nemo *n;
 
 void* ThreadMain1(void *arg) {
-  Status s = n->HSet("tHSetKey", "field1", "value1");
+  int HSetRes;
+  Status s = n->HSet("tHSetKey", "field1", "value1",&HSetRes);
   log_info("Test HSet field1 OK return %s", s.ToString().c_str());
   return NULL;
 }
 
 void* ThreadMain2(void *arg) {
-  Status s = n->HSet("tHSetKey", "field2", "value2");
+  int HSetRes;  
+  Status s = n->HSet("tHSetKey", "field2", "value2",&HSetRes);
   log_info("Test HSet field2 OK return %s", s.ToString().c_str());
   return NULL;
 }
 
 void* ThreadMain3(void *arg) {
-  Status s = n->HSet("tHSetKey", "field3", "value3");
+  int HSetRes;  
+  Status s = n->HSet("tHSetKey", "field3", "value3",&HSetRes);
   log_info("Test HSet field3 OK return %s", s.ToString().c_str());
   return NULL;
 }
 
 void* ThreadMain4(void *arg) {
-  Status s = n->HSet("tHSetKey1", "field3", "value3");
+  int HSetRes;  
+  Status s = n->HSet("tHSetKey1", "field3", "value3",&HSetRes);
   log_info("Test HSet field3 OK return %s", s.ToString().c_str());
   return NULL;
 }
 
 void* ThreadMain5(void *arg) {
-  Status s = n->HSet("tHSetKey2", "field3", "value3");
+  int HSetRes;  
+  Status s = n->HSet("tHSetKey2", "field3", "value3",&HSetRes);
   log_info("Test HSet field3 OK return %s", s.ToString().c_str());
   return NULL;
 }
 
 void* ThreadMain6(void *arg) {
-  Status s = n->HSet("tHSetKey3", "field3", "value3");
+  int HSetRes;  
+  Status s = n->HSet("tHSetKey3", "field3", "value3",&HSetRes);
   log_info("Test HSet field3 OK return %s", s.ToString().c_str());
   return NULL;
 }

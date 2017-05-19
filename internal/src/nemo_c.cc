@@ -403,8 +403,8 @@ extern "C"	{
 
 	// ==============HASH=====================
 	void nemo_HSet(nemo_t * nemo,const char * key,const size_t keylen,
-							     const char * field,const size_t fieldlen,const char * value,const size_t vallen, char ** errptr){
-		nemo_SaveError(errptr,nemo->rep->HSet(std::string(key,keylen),std::string(field,fieldlen),std::string(value,vallen)));
+							     const char * field,const size_t fieldlen,const char * value,const size_t vallen, int * res, char ** errptr){
+		nemo_SaveError(errptr,nemo->rep->HSet(std::string(key,keylen),std::string(field,fieldlen),std::string(value,vallen),res));
 	}
 	void nemo_HGet(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,char ** value, size_t * value_len , char ** errptr){
 		std::string val_str;
@@ -468,14 +468,14 @@ extern "C"	{
 	}
 
 	void nemo_HMSet(nemo_t * nemo,const char * key,const size_t keylen, const int num, const char ** field_list,const size_t * field_list_len,	\
-								       const char ** value_list,const size_t * value_list_len, char ** errptr){
+								       const char ** value_list,const size_t * value_list_len, int * res_list, char ** errptr){
 		std::vector<FV> fv(num);
 		for (int i = 0; i < num; ++i)
 		{
 			fv[i].field = std::string(field_list[i],field_list_len[i]);
 			fv[i].val = std::string(value_list[i],value_list_len[i]);/* code */
 		}
-		nemo_SaveError(errptr,nemo->rep->HMSet(std::string(key,keylen),fv));
+		nemo_SaveError(errptr,nemo->rep->HMSet(std::string(key,keylen),fv,res_list));
 	}
    	void nemo_HMGet(nemo_t * nemo,const char * key,const size_t keylen, const int num, const char ** field_list,const size_t * field_list_len,	\
 					 			             char ** value_list,size_t * value_list_strlen, char ** errs,char ** errptr){

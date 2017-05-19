@@ -132,14 +132,14 @@ public:
     Status SetWithExpireAt(const std::string &key, const std::string &val, const int32_t timestamp = 0);
 
     // ==============HASH=====================
-    Status HSet(const std::string &key, const std::string &field, const std::string &val);
+    Status HSet(const std::string &key, const std::string &field, const std::string &val, int * res);
     Status HGet(const std::string &key, const std::string &field, std::string *val);
     Status HDel(const std::string &key, const std::string &field);
     bool HExists(const std::string &key, const std::string &field);
     Status HKeys(const std::string &key, std::vector<std::string> &keys);
     Status HGetall(const std::string &key, std::vector<FV> &fvs);
     int64_t HLen(const std::string &key);
-    Status HMSet(const std::string &key, const std::vector<FV> &fvs);
+    Status HMSet(const std::string &key, const std::vector<FV> &fvs,int * res_list);
     Status HMGet(const std::string &key, const std::vector<std::string> &keys, std::vector<FVS> &fvss);
     Status HSetnx(const std::string &key, const std::string &field, const std::string &val);
     int64_t HStrlen(const std::string &key, const std::string &field);

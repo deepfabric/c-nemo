@@ -80,10 +80,11 @@ int main()
     hs_it->Skip(2);
     skip_ret = hs_it->Valid();
     log_info ("test Internal Hash Skip(2) when no keys, expect false, return %s", skip_ret ? "true" : "false");
-
-    s = n->HSet("tHSetKey", "tHSetField1", "tSetVal1");
-    s = n->HSet("tHSetKey", "tHSetField2", "tSetVal2");
-    s = n->HSet("tHSetKey", "tHSetField3", "tSetVal3");
+    
+    int HSetRes;
+    s = n->HSet("tHSetKey", "tHSetField1", "tSetVal1", &HSetRes);
+    s = n->HSet("tHSetKey", "tHSetField2", "tSetVal2", &HSetRes);
+    s = n->HSet("tHSetKey", "tHSetField3", "tSetVal3", &HSetRes);
 
     hs_it = n->HScan("tHSetKey", "", "", -1);
     hs_it->Skip(1);
@@ -582,7 +583,7 @@ int main()
      *  Test HSet
      */
     log_info("======Test HSet======");
-    s = n->HSet("tHSetKey", "song", "tHSetVal");
+    s = n->HSet("tHSetKey", "song", "tHSetVal", &HSetRes);
     log_info("Test HSet OK return %s", s.ToString().c_str());
     log_info("");
 
@@ -590,7 +591,7 @@ int main()
      *  Test HGet
      */
     log_info("======Test HGet======");
-    s = n->HSet("tHGetKey", "song", "tGetVal");
+    s = n->HSet("tHGetKey", "song", "tGetVal", &HSetRes);
     res = "";
     s = n->HGet("tHGetKey", "song", &res);
     log_info("Test HGet OK return %s, result tHGetVal = %s", s.ToString().c_str(), res.c_str());
@@ -619,7 +620,7 @@ int main()
      *  Test HExists
      */
     log_info("======Test HExists======");
-    s = n->HSet("tHExistsKey", "song", "tHExistsVal");
+    s = n->HSet("tHExistsKey", "song", "tHExistsVal", &HSetRes);
     log_info("test HExists with existed key & field return: %d", n->HExists("tHExistsKey", "song"));
     log_info("test HExists with non-existed key return: %d", n->HExists("tHExistsNonKey", "song"));
     log_info("test HExists with non-existed fields return: %d", n->HExists("tHExistsKey", "non-field"));
@@ -632,7 +633,7 @@ int main()
      *  Test HStrlen
      */
     log_info("======Test HStrlen======");
-    s = n->HSet("tHStrlenKey", "song", "tHStrlenVal");
+    s = n->HSet("tHStrlenKey", "song", "tHStrlenVal", &HSetRes);
     log_info("test HStrlen return 11 = %ld", n->HStrlen("tHStrlenKey", "song"));
     
     //just delete all key-value set before
@@ -656,7 +657,7 @@ int main()
      *  Test HIncrby
      */
     log_info("======Test HIncrby======");
-    s = n->HSet("tHIncrByKey", "song", "12");
+    s = n->HSet("tHIncrByKey", "song", "12", &HSetRes);
     res = "";
     s = n->HIncrby("tHIncrByKey", "song", 6, res);
     log_info("Test HIncrby OK return %s, 12 HIncrby 6 val: %s", s.ToString().c_str(), res.c_str());
@@ -667,7 +668,7 @@ int main()
     log_info("Test HIncrby OK return %s, HIncrby LLONG_MAX", s.ToString().c_str());
 
     //Test NonNum key HIncrBy
-    s = n->HSet("tHIncrByKey", "song", "NonNum");
+    s = n->HSet("tHIncrByKey", "song", "NonNum", &HSetRes);
     res = "";
     s = n->HIncrby("tHIncrByKey", "song", 6, res);
     log_info("Test HIncrby OK return %s, NonNum HIncrby 6 val: %s", s.ToString().c_str(), res.c_str());
@@ -680,7 +681,7 @@ int main()
      *  Test HIncrbyfloat
      */
     log_info("======Test HIncrbyfloat======");
-    s = n->HSet("tHIncrByfloatKey", "song", "12.1");
+    s = n->HSet("tHIncrByfloatKey", "song", "12.1", &HSetRes);
     res = "";
     s = n->HIncrbyfloat("tHIncrByfloatKey", "song", 6.2, res);
     log_info("Test HIncrbyfloat OK return %s, 12.1 HIncrbyfloat 6.2 val: %s", s.ToString().c_str(), res.c_str());
@@ -696,7 +697,7 @@ int main()
     log_info("Test HIncrbyfloat OK return %s, HIncrbyfloat max float, expect overflow", s.ToString().c_str());
 
     //Test NonNum key HIncrBy
-    s = n->HSet("tHIncrByfloatKey", "song", "NonNum");
+    s = n->HSet("tHIncrByfloatKey", "song", "NonNum", &HSetRes);
     res = "";
     s = n->HIncrby("tHIncrByfloatKey", "song", 6, res);
     log_info("Test HIncrbyfloat OK return %s, NonNum HIncrbyfloat 6 val: %s", s.ToString().c_str(), res.c_str());
@@ -713,9 +714,9 @@ int main()
     fields.push_back("tHMGetField2");
     fields.push_back("tHMGetField3");
     fields.push_back("tHMGetNotFoundField");
-    s = n->HSet("tHMGetKey", "tHMGetField1", "tHMGetVal1");
-    s = n->HSet("tHMGetKey", "tHMGetField2", "tHMGetVal2");
-    s = n->HSet("tHMGetKey", "tHMGetField3", "tHMGetVal3");
+    s = n->HSet("tHMGetKey", "tHMGetField1", "tHMGetVal1", &HSetRes);
+    s = n->HSet("tHMGetKey", "tHMGetField2", "tHMGetVal2", &HSetRes);
+    s = n->HSet("tHMGetKey", "tHMGetField3", "tHMGetVal3", &HSetRes);
 
     s = n->HMGet("tHMGetKey", fields, fvss);
     std::vector<FVS>::iterator fvs_iter;
@@ -1670,7 +1671,7 @@ int main()
      */
     log_info("======Test Keys======");
     s = n->Set("setkey", "setval1");
-    s = n->HSet("tHSetKey", "tHSetField1", "tSetVal1");
+    s = n->HSet("tHSetKey", "tHSetField1", "tSetVal1", &HSetRes);
     s = n->LPush("tLPushKey", "tLPushVal1", &llen);
     s = n->ZAdd("tZSetKey", 100.0, "tHMember1", &za_res);
     s = n->SAdd("abc", "member1", &sadd_res);
@@ -1704,7 +1705,7 @@ int main()
      */
     log_info("======Test Exists======");
     s = n->Set("ExistKey", "val1");
-    s = n->HSet("HExistKey", "tHSetField1", "tSetVal1");
+    s = n->HSet("HExistKey", "tHSetField1", "tSetVal1", &HSetRes);
     s = n->LPush("LExistKey", "tLPushVal1", &llen);
     s = n->ZAdd("ZExistKey", 100.0, "tHMember1", &za_res);
     s = n->SAdd("SExistKey", "member1", &sadd_res);
@@ -1728,7 +1729,7 @@ int main()
     log_info("Test Exists(5 type) after DEL(KV,HASH) return %s, exists number=%ld", s.ToString().c_str(), llen);
 
     //s = n->Set("SameExistKey", "val1");
-    s = n->HSet("SameExistKey", "tHSetField1", "tSetVal1");
+    s = n->HSet("SameExistKey", "tHSetField1", "tSetVal1", &HSetRes);
     s = n->LPush("SameExistKey", "tLPushVal1", &llen);
 
     keys.clear();

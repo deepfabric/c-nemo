@@ -80,7 +80,8 @@ void* call_Dump(void *arg) {
         string hash_k(gen_str(key, hash_key_header, i));
         string hash_f(gen_str(key, hash_field_header, i));
         string hash_v(gen_str(key, hash_value_header, i));
-        n->HSet(hash_k, hash_f, hash_v);
+        int HSetRes;
+        n->HSet(hash_k, hash_f, hash_v, &HSetRes);
         break;
       }
 

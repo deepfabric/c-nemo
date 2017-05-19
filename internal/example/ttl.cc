@@ -38,7 +38,8 @@ int main()
      */
     log_info("======Test MDel======");
     s = n->Set("key", "setval1");
-    s = n->HSet("key", "hashfield", "tSetVal1");
+    int HSetRes;
+    s = n->HSet("key", "hashfield", "tSetVal1", &HSetRes);
     s = n->LPush("key", "tLPushVal1", &llen);
     s = n->ZAdd("key", 100.0, "zsetMember1", &za_res);
     s = n->SAdd("key", "member1", &sadd_res);
@@ -73,7 +74,7 @@ int main()
      */
     log_info("======Test TTL======");
     s = n->Set("key", "setval1");
-    s = n->HSet("key", "hashfield", "tSetVal1");
+    s = n->HSet("key", "hashfield", "tSetVal1", &HSetRes);
     s = n->LPush("key", "tLPushVal1", &llen);
     s = n->ZAdd("key", 100.0, "zsetMember1", &za_res);
     s = n->SAdd("key", "member1", &sadd_res);
@@ -119,7 +120,7 @@ int main()
      */
     log_info("======Test HExpireat======");
     s = n->Set("key", "setval1");
-    s = n->HSet("key", "hashfield", "tSetVal1");
+    s = n->HSet("key", "hashfield", "tSetVal1", &HSetRes);
     s = n->LPush("key", "tLPushVal1", &llen);
     s = n->ZAdd("key", 100.0, "zsetMember1", &za_res);
     s = n->SAdd("key", "member1", &sadd_res);
@@ -156,7 +157,7 @@ int main()
     log_info("");
 
     s = n->Set("key", "setval1");
-    s = n->HSet("key", "hashfield", "tSetVal1");
+    s = n->HSet("key", "hashfield", "tSetVal1", &HSetRes);
     s = n->LPush("key", "tLPushVal1", &llen);
     s = n->ZAdd("key", 100.0, "zsetMember1", &za_res);
     s = n->SAdd("key", "member1", &sadd_res);
@@ -188,7 +189,7 @@ int main()
      */
     log_info("======Test Persist======");
     s = n->Set("key", "setval1");
-    s = n->HSet("key", "hashfield", "tSetVal1");
+    s = n->HSet("key", "hashfield", "tSetVal1", &HSetRes);
     s = n->LPush("key", "tLPushVal1", &llen);
     s = n->ZAdd("key", 100.0, "zsetMember1", &za_res);
     s = n->SAdd("key", "member1", &sadd_res);

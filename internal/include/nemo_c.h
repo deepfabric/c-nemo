@@ -161,7 +161,7 @@ extern void nemo_BitOp(nemo_t * nemo,int optype,const char * dest_key,const size
                         const int num, char ** src_key_list, size_t * src_key_len, int64_t * result_length, char ** errptr);
 
 // ==============HASH=====================
-extern void nemo_HSet(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,const char * value,const size_t vallen, char ** errptr);
+extern void nemo_HSet(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,const char * value,const size_t vallen, int * res, char ** errptr);
 
 extern void nemo_HGet(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,char ** value, size_t * value_len , char ** errptr);
 
@@ -176,7 +176,7 @@ extern void nemo_HGetall(nemo_t * nemo,const char * key, const size_t keylen,int
 extern int64_t nemo_HLen(nemo_t * nemo,const char * key,const size_t keylen);
 
 extern void nemo_HMSet(nemo_t * nemo,const char * key, const size_t keylen,const int num, const char ** field_list,const size_t * field_list_len, \
-                                   const char ** value_list,const size_t * value_list_len, char ** errptr);
+                                   const char ** value_list,const size_t * value_list_len, int * res_list, char ** errptr);
 
 extern void nemo_HMGet(nemo_t * nemo,const char * key, const size_t keylen,const int num, const char ** field_list,const size_t * field_list_len, \
                                    char ** value_list,size_t * value_list_strlen, char ** errs,char ** errptr); 

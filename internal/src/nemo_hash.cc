@@ -68,7 +68,7 @@ Status Nemo::HChecknRecover(const std::string& key) {
   return hash_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &(writebatch));
 }
 
-Status Nemo::HSet(const std::string &key, const std::string &field, const std::string &val) {
+Status Nemo::HSet(const std::string &key, const std::string &field, const std::string &val, int * res) {
     if (key.size() >= KEY_MAX_LENGTH || key.size() <= 0) {
        return Status::InvalidArgument("Invalid key length");
     }
@@ -87,7 +87,10 @@ Status Nemo::HSet(const std::string &key, const std::string &field, const std::s
             //hash_record_.Unlock(key);
             return Status::Corruption("incrhsize error");
         }
+        *res = 1;
     }
+    else
+        *res = 0;
     s = hash_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &(writebatch));
 
     //hash_record_.Unlock(key);
@@ -386,14 +389,16 @@ Status Nemo::HGetall(const std::string &key, std::vector<FV> &fvs) {
     return Status::OK();
 }
 
-Status Nemo::HMSet(const std::string &key, const std::vector<FV> &fvs) {
+Status Nemo::HMSet(const std::string &key, const std::vector<FV> &fvs,int * res_list ) {
     if (key.size() >= KEY_MAX_LENGTH || key.size() <= 0) {
        return Status::InvalidArgument("Invalid key length");
     }
     Status s;
+    int res;
     std::vector<FV>::const_iterator it;
-    for (it = fvs.begin(); it != fvs.end(); it++) {
-        HSet(key, it->field, it->val);
+    for (it = fvs.begin(); it != fvs.end(); it++,res_list++) {
+        HSet(key, it->field, it->val, &res);
+        *res_list = res;
     }
     return s;
 }

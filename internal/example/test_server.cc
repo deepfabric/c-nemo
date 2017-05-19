@@ -76,14 +76,15 @@ int main()
     /*
      * test CompactKey
      */
-    
+    int HSetRes;
     for (int i = 0; i < 1; i++) {
       log_info("====== i: %3d ======", i);
       log_info("======Test CompactKey======");
       s = n->Set("key", "setval1");
-      s = n->HSet("key", "hashfield1", "hashVal1");
-      s = n->HSet("key", "hashfield2", "hashVal2");
-      s = n->HSet("key", "hashfield3", "hashVal3");
+
+      s = n->HSet("key", "hashfield1", "hashVal1", &HSetRes);
+      s = n->HSet("key", "hashfield2", "hashVal2", &HSetRes);
+      s = n->HSet("key", "hashfield3", "hashVal3", &HSetRes);
       s = n->LPush("key", "tLPushVal1", &llen);
       s = n->LPush("key", "tLPushVal2", &llen);
       s = n->LPush("key", "tLPushVal3", &llen);
@@ -143,7 +144,7 @@ int main()
      */
     log_info("======Test Keys======");
     s = n->Set("key", "setval1");
-    s = n->HSet("key", "hashfield", "tSetVal1");
+    s = n->HSet("key", "hashfield", "tSetVal1", &HSetRes);
     s = n->LPush("key", "tLPushVal1", &llen);
     s = n->ZAdd("key", 100.0, "zsetMember1", &za_res);
     s = n->SAdd("key", "member1", &sadd_res);
