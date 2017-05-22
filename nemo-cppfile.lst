@@ -84,7 +84,6 @@ internal/3rdparty/nemo-rocksdb/rocksdb/table/table_properties.cc
 internal/3rdparty/nemo-rocksdb/rocksdb/table/two_level_iterator.cc
 internal/3rdparty/nemo-rocksdb/rocksdb/util/arena.cc
 internal/3rdparty/nemo-rocksdb/rocksdb/util/bloom.cc
-internal/3rdparty/nemo-rocksdb/rocksdb/util/build_version.cc
 internal/3rdparty/nemo-rocksdb/rocksdb/util/cf_options.cc
 internal/3rdparty/nemo-rocksdb/rocksdb/util/clock_cache.cc
 internal/3rdparty/nemo-rocksdb/rocksdb/util/coding.cc
