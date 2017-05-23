@@ -94,21 +94,26 @@ int main()
 
     system("rm -rf /tmp/nemo/sst_test");
     n = new Nemo(db_path, options);
+
+    s = n->Set("K1","V1 before Ingest");
+    assert(s.ok());
+
     s = n->IngestFile(db_dump_path);
     assert(s.ok());
 
     std::string res_kv;
     s = n->Get("K1",&res_kv);
     assert(s.ok());
-    assert(res_kv == "V1");    
+    log_info("After ingest,K1:%s",res_kv.c_str());
+    assert(res_kv == "V1");
     s = n->Get("K2",&res_kv);
     assert(s.ok());
     assert(res_kv == "V2");
     int64_t kv_ttl; 
     s = n->TTL("K2",&kv_ttl);
     assert(s.ok()); 
-    sleep(1);
-    assert(kv_ttl == 4320);
+//    sleep(1);
+//    assert(kv_ttl == 4320);
 
 //    log_info("HashRawScan:");
 //    n->HashRawScan("A","x",true);
