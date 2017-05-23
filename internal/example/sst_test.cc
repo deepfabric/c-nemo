@@ -148,9 +148,13 @@ int main()
     s = n->LPop("L3",&list_val);
     assert(s.IsNotFound()); 
 
-    assert(n->SIsMember("S1","s1A"));
-    assert(n->SIsMember("S1","s1B"));
-    assert(n->SIsMember("S2","s2"));          
+    bool isMember;
+    n->SIsMember("S1","s1A",&isMember);
+    assert(isMember);
+    n->SIsMember("S1","s1B",&isMember);
+    assert(isMember);
+    n->SIsMember("S2","s2",&isMember);
+    assert(isMember);          
 
     s = n->ZScore("Z1","z1A",&score);
     assert(s.ok());

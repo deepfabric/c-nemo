@@ -619,11 +619,16 @@ int main()
     /*
      *  Test HExists
      */
+    bool ifExists;
     log_info("======Test HExists======");
     s = n->HSet("tHExistsKey", "song", "tHExistsVal", &HSetRes);
-    log_info("test HExists with existed key & field return: %d", n->HExists("tHExistsKey", "song"));
-    log_info("test HExists with non-existed key return: %d", n->HExists("tHExistsNonKey", "song"));
-    log_info("test HExists with non-existed fields return: %d", n->HExists("tHExistsKey", "non-field"));
+    s = n->HExists("tHExistsKey", "song",&ifExists);
+    assert(s.ok());
+    log_info("test HExists with existed key & field return: %d", ifExists);
+    s = n->HExists("tHExistsNonKey", "song",&ifExists);
+    log_info("test HExists with non-existed key return: %d", ifExists);
+    s = n->HExists("tHExistsKey", "non-field",&ifExists);
+    log_info("test HExists with non-existed fields return: %d", ifExists);
     
     //just delete all key-value set before
     s = n->HDel("tHExistsKey", "song");
@@ -633,9 +638,12 @@ int main()
      *  Test HStrlen
      */
     log_info("======Test HStrlen======");
+    int64_t HStrlen_res;
     s = n->HSet("tHStrlenKey", "song", "tHStrlenVal", &HSetRes);
-    log_info("test HStrlen return 11 = %ld", n->HStrlen("tHStrlenKey", "song"));
-    
+    s = n->HStrlen("tHStrlenKey", "song",&HStrlen_res);
+    assert(s.ok());
+    log_info("test HStrlen return 11 = %ld", HStrlen_res);
+
     //just delete all key-value set before
     s = n->HDel("tHStrlenKey", "song");
     log_info("");
@@ -767,9 +775,14 @@ int main()
     /*
      *  Test HLen
      */
+    int64_t Hlen_res;
     log_info("======Test HLen======");
-    log_info("HLen with existed key return: %ld", n->HLen("tHMGetKey"));
-    log_info("HLen with non-existe key return: %ld", n->HLen("non-exist"));
+    s = n->HLen("tHMGetKey",&Hlen_res);
+    assert(s.ok());
+    log_info("HLen with existed key return: %ld", Hlen_res);
+    s = n->HLen("non-exist",&Hlen_res);
+    assert(s.ok());    
+    log_info("HLen with non-existe key return: %ld", Hlen_res);
     log_info("");
 
     /*
@@ -1081,7 +1094,10 @@ int main()
      *  Test ZCard
      */
     log_info("======Test ZCard======");
-    log_info("Test ZCard, return %ld", n->ZCard("tZAddKey"));
+    int64_t zcard_sum;
+    s = n->ZCard("tZAddKey",&zcard_sum);
+    assert(s.ok());
+    log_info("Test ZCard, return %ld", zcard_sum);
     log_info("");
     
     /*
@@ -1101,7 +1117,9 @@ int main()
      *  Test ZCount
      */
     log_info("======Test ZCount======");
-    log_info("Test ZCount, return %ld", n->ZCount("tZAddKey", -1, 3)); 
+    int64_t Zcount_res = 0;
+    n->ZCount("tZAddKey", -1, 3, &Zcount_res);
+    log_info("Test ZCount, return %ld", Zcount_res); 
     log_info("");
 
     /*
@@ -1120,7 +1138,8 @@ int main()
     for (; it_zset->Valid(); it_zset->Next()) {
         log_info("After ZIncrby, Scan key: %s, score: %lf, value: %s", it_zset->key().c_str(), it_zset->score(), it_zset->member().c_str());
     }
-    log_info("After ZIncrby, ZCard return %ld", n->ZCard("tZAddKey")); 
+    s = n->ZCard("tZAddKey",&zcard_sum);
+    log_info("After ZIncrby, ZCard return %ld", zcard_sum); 
     log_info("");
 
     /*
@@ -1336,8 +1355,10 @@ int main()
      *  Test Scard
      */
     log_info("======Test SCard======");
-    log_info("SCard with existed key return: %ld", n->SCard("setKey"));
-    log_info("SCard with non-existe key return: %ld", n->SCard("non-exist"));
+    int64_t SCard_res = 0;
+    log_info("SCard with existed key return: %ld", SCard_res );
+    n->SCard("non-exist",&SCard_res);
+    log_info("SCard with non-existe key return: %ld", SCard_res);
     log_info("");
 
     /*
@@ -1600,9 +1621,13 @@ int main()
      */
     log_info("======Test SIsMember======");
     s = n->SAdd("setKey1", "member1", &sadd_res);
-    log_info("Test SIsMember with exist member return %d, expect [true]", n->SIsMember("setKey", "member1"));
-    log_info("Test SIsMember with non-exist member return %d, expect [false]", n->SIsMember("setKey", "non-member"));
-    log_info("Test SIsMember with non-exist key return %d, expect [false]", n->SIsMember("setKeyasdf", "member"));
+    bool isMemeber;
+    n->SIsMember("setKey", "member1",&isMemeber);
+    log_info("Test SIsMember with exist member return %d, expect [true]", isMemeber);
+    n->SIsMember("setKey", "non-member",&isMemeber);
+    log_info("Test SIsMember with non-exist member return %d, expect [false]",isMemeber);
+    n->SIsMember("setKeyasdf", "member",&isMemeber);
+    log_info("Test SIsMember with non-exist key return %d, expect [false]", isMemeber);
 
     /*
      *  Test SRem
@@ -1638,8 +1663,9 @@ int main()
 
     int64_t smove_res;
     s = n->SMove("moveKey1", "moveKey1", "member2", &smove_res);
+    n->SCard("moveKey1",&SCard_res);
     log_info("Test SMove(key1, key1, member2) return %s, expect key1=%ld [member1 member2] ",
-             s.ToString().c_str(), n->SCard("moveKey1"));
+             s.ToString().c_str(), SCard_res);
 
     values.clear();
     s = n->SMembers("moveKey1", values);
@@ -1650,8 +1676,11 @@ int main()
     log_info("");
 
     s = n->SMove("moveKey1", "moveKey2", "member2", &smove_res);
+    int64_t SCard_res1=0,SCard_res2=0;
+    n->SCard("moveKey1",&SCard_res1);
+    n->SCard("moveKey2",&SCard_res2);
     log_info("Test SMove(key1, key2, member2) return %s, expect key1=%ld [member1]  key2= %ld [member1, member2]",
-             s.ToString().c_str(), n->SCard("moveKey1"), n->SCard("moveKey2"));
+             s.ToString().c_str(),SCard_res1, SCard_res2 );
 
     values.clear();
     s = n->SMembers("moveKey1", values);

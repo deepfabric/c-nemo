@@ -57,13 +57,13 @@ int main()
     s = n->HGet("key", "hashfield", &res);
     log_info("        return %s", s.ToString().c_str());
 
-    int64_t ret;
     double score;
     s = n->ZScore("key", "zsetMember1", &score);
     log_info("          ZScore return %s", s.ToString().c_str());
 
-    ret = n->SIsMember("key", "member1");
-    log_info("          SIsMember return %ld, [true|false]", ret);
+    bool isMember;
+    n->SIsMember("key", "member1",&isMember);
+    log_info("          SIsMember return %ld, [true|false]", isMember);
 
     s = n->LIndex("key", 0, &res);
     log_info("          LIndex(0) return %s, val is %s", s.ToString().c_str(), res.c_str());
@@ -102,7 +102,8 @@ int main()
         s = n->ZScore("key", "zsetMember1", &score);
         log_info("          after %ds, ZScore return %s", (i+1)*3, s.ToString().c_str());
 
-        int ret = n->SIsMember("key", "member1");
+        bool ret;
+        n->SIsMember("key", "member1",&ret);
         log_info("          after %ds, SIsMember return %d, [true|false]", (i+1)*3, ret);
 
         s = n->LIndex("key", 0, &res);
@@ -143,7 +144,8 @@ int main()
         s = n->ZScore("key", "zsetMember1", &score);
         log_info("          after %ds, ZScore return %s", (i+1)*3, s.ToString().c_str());
 
-        int ret = n->SIsMember("key", "member1");
+        bool ret;
+        n->SIsMember("key", "member1",&ret);
         log_info("          after %ds, SIsMember return %d, [true|false]", (i+1)*3, ret);
 
         s = n->LIndex("key", 0, &res);
@@ -172,8 +174,8 @@ int main()
     s = n->ZScore("key", "zsetMember1", &score);
     log_info("          ZScore return %s", s.ToString().c_str());
 
-    ret = n->SIsMember("key", "member1");
-    log_info("          SIsMember return %ld, [true|false]", ret);
+    n->SIsMember("key", "member1",&isMember);
+    log_info("          SIsMember return %ld, [true|false]", isMember);
 
     s = n->LIndex("key", 0, &res);
     log_info("          LIndex(0) return %s, val is %s", s.ToString().c_str(), res.c_str());
@@ -214,7 +216,8 @@ int main()
         s = n->ZScore("key", "zsetMember1", &score);
         log_info("          after %ds, ZScore return %s", (i+1)*3, s.ToString().c_str());
 
-        int ret = n->SIsMember("key", "member1");
+        bool ret;
+        n->SIsMember("key", "member1",&ret);
         log_info("          after %ds, SIsMember return %d, [true|false]", (i+1)*3, ret);
 
         s = n->LIndex("key", 0, &res);

@@ -221,22 +221,24 @@ Status Nemo::ZAddNoLock(const std::string &key, const double score, const std::s
     }
 }
 
-int64_t Nemo::ZCard(const std::string &key) {
+ Status Nemo::ZCard(const std::string &key,int64_t * sum) {
     Status s;
     std::string val;
     std::string size_key = EncodeZSizeKey(key);
     s = zset_db_->Get(rocksdb::ReadOptions(), size_key, &val);
     if (s.ok()) {
         if (val.size() != sizeof(uint64_t)*2) {
-            return -1;
+            *sum = -1;
+            return Status::Corruption("zset sizekey value size error");
         }
         int64_t ret = *(int64_t *)val.data();
-        return ret < 0? 0 : ret;
+        *sum = ret < 0? 0 : ret;
     } else if (s.IsNotFound()) {
-        return 0;
+        *sum = 0;
     } else {
-        return -1;
+        *sum = -1;
     }
+    return s;
 }
 
 Status Nemo::ZVolume(const std::string &key,int64_t* s_len, int64_t* s_vol) {
@@ -246,7 +248,7 @@ Status Nemo::ZVolume(const std::string &key,int64_t* s_len, int64_t* s_vol) {
     s = zset_db_->Get(rocksdb::ReadOptions(), size_key, &val);
     if (s.ok()) {
         if (val.size() != sizeof(uint64_t) * 2 ) {
-            return Status::Corruption("set sizekey value size error");
+            return Status::Corruption("zset sizekey value size error");
         }
         ZSetMeta meta;
         if(!meta.DecodeFrom(val))
@@ -313,7 +315,7 @@ ZLexIterator* Nemo::ZScanbylex(const std::string &key, const std::string &min, c
     return new ZLexIterator(it, zset_db_.get(), iter_options, key); 
 }
 
-int64_t Nemo::ZCount(const std::string &key, const double begin, const double end, bool is_lo, bool is_ro) {
+Status Nemo::ZCount(const std::string &key, const double begin, const double end, int64_t * sum, bool is_lo, bool is_ro) {
     double b = is_lo ? begin + eps : begin;
     double e = is_ro ? end - eps : end;
 //    MutexLock l(&mutex_zset_);
@@ -329,7 +331,8 @@ int64_t Nemo::ZCount(const std::string &key, const double begin, const double en
         }
     }
     delete it;
-    return n;
+    *sum = n;
+    return Status::OK();
 }
 
 Status Nemo::ZIncrby(const std::string &key, const std::string &member, const double by, std::string &new_score) {
@@ -395,7 +398,8 @@ Status Nemo::ZRange(const std::string &key, const int64_t start, const int64_t s
        return Status::InvalidArgument("Invalid key length");
     }
 //    MutexLock l(&mutex_zset_);
-    int64_t t_size = ZCard(key);
+    int64_t t_size = 0;
+    ZCard(key,&t_size);
     if (t_size >= 0) {
         int64_t t_start = start >= 0 ? start : t_size + start;
         int64_t t_stop = stop >= 0 ? stop : t_size + stop;
@@ -845,7 +849,8 @@ Status Nemo::ZRemrangebyrank(const std::string &key, const int64_t start, const 
     //MutexLock l(&mutex_zset_);
     RecordLock l(&mutex_zset_record_, key);
 
-    int64_t t_size = ZCard(key);
+    int64_t t_size = 0;
+    ZCard(key,&t_size);
     if (t_size >= 0) {
         int64_t t_start = start >= 0 ? start : t_size + start;
         int64_t t_stop = stop >= 0 ? stop : t_size + stop;
@@ -899,7 +904,8 @@ Status Nemo::ZRemrangebyrankNoLock(const std::string &key, const int64_t start, 
     *count = 0;
     int64_t volume = 0;
     Status s;
-    int64_t t_size = ZCard(key);
+    int64_t t_size = 0;
+    ZCard(key,&t_size);
     if (t_size >= 0) {
         int64_t t_start = start >= 0 ? start : t_size + start;
         int64_t t_stop = stop >= 0 ? stop : t_size + stop;

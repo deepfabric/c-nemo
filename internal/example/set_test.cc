@@ -48,8 +48,11 @@ int main()
      */
     log_info("======Test SCard======");
     s = n->SAdd("setKey", "member1", &sadd_res);
-    log_info("SCard with existed key return: %ld", n->SCard("setKey"));
-    log_info("SCard with non-existe key return: %ld", n->SCard("non-exist"));
+    int64_t SCard_res = 0;
+    n->SCard("setKey",&SCard_res);
+    log_info("SCard with existed key return: %ld", SCard_res);
+    n->SCard("non-exist",&SCard_res)
+    log_info("SCard with non-existe key return: %ld", SCard_res);
     log_info("");
 
     /*
@@ -312,9 +315,13 @@ int main()
      */
     log_info("======Test SIsMember======");
     s = n->SAdd("setKey1", "member1", &sadd_res);
-    log_info("Test SIsMember with exist member return %d, expect [true]", n->SIsMember("setKey", "member1"));
-    log_info("Test SIsMember with non-exist member return %d, expect [false]", n->SIsMember("setKey", "non-member"));
-    log_info("Test SIsMember with non-exist key return %d, expect [false]", n->SIsMember("setKeyasdf", "member"));
+    bool isMemeber;
+    n->SIsMember("setKey", "member1",&isMemeber);
+    log_info("Test SIsMember with exist member return %d, expect [true]", isMemeber);
+    n->SIsMember("setKey", "non-member",&isMemeber);
+    log_info("Test SIsMember with non-exist member return %d, expect [false]",isMemeber);
+    n->SIsMember("setKeyasdf", "member",&isMemeber);
+    log_info("Test SIsMember with non-exist key return %d, expect [false]", isMemeber);
 
     /*
      *  Test SRem
@@ -350,8 +357,11 @@ int main()
 
     int64_t smove_res;
     s = n->SMove("moveKey1", "moveKey2", "member2", &smove_res);
+    int64_t SCard_res1=0,SCard_res2=0;
+    n->SCard("moveKey1",&SCard_res1);
+    n->SCard("moveKey2",&SCard_res2);    
     log_info("Test SMove(key1, key2, member2) return %s, expect key1=%ld [member1]  key2= %ld [member1, member2]",
-             s.ToString().c_str(), n->SCard("moveKey1"), n->SCard("moveKey2"));
+             s.ToString().c_str(), SCard_res1, SCard_res2);
 
     values.clear();
     s = n->SMembers("moveKey1", values);
@@ -368,7 +378,8 @@ int main()
     s = n->SAdd("tSetKey", "field11", &sadd_res);
     log_info("======SAdd  return %s", s.ToString().c_str());
     log_info("  ======After sadd SCard======");
-    log_info("  Test SCard, return card is %ld", n->SCard("tSetKey"));
+    n->SCard("tSetKey",&SCard_res);
+    log_info("  Test SCard, return card is %ld", SCard_res);
     log_info("");
 
     int64_t e_ret;
@@ -376,13 +387,16 @@ int main()
     s = n->SExpire("tSetKey", 7, &e_ret);
     log_info("Test SExpire with key=tSetKey in 7s, return %s", s.ToString().c_str());
     log_info("  ======After sexpire SCard======");
-    log_info("  Test SCard, return card is %ld", n->SCard("tSetKey"));
+    n->SCard("tSetKey",&SCard_res)
+    log_info("  Test SCard, return card is %ld", SCard_res);
     log_info("");
 
     int64_t ttl;
     for (int i = 0; i < 3; i++) {
         sleep(3);
-        int ret = n->SIsMember("tSetKey", "field11");
+
+        bool ret;
+        n->SIsMember("tSetKey", "field11",&ret);
         log_info("          after %ds, SIsMember return %d, [true|false]", (i+1)*3, ret);
         if (ret) {
             s = n->STTL("tSetKey", &ttl);
@@ -431,7 +445,8 @@ int main()
 
     for (int i = 0; i < 3; i++) {
         sleep(3);
-        int ret = n->SIsMember("tSetKey", "field12");
+        bool ret;
+        n->SIsMember("tSetKey", "field12");
         log_info("          after %ds, SIsMember return %d, [true|false]", (i+1)*3, ret);
         if (ret) {
             s = n->STTL("tSetKey", &ttl);
@@ -443,8 +458,8 @@ int main()
     s = n->SAdd("tSetKey", "field12", &sadd_res);
     s = n->SExpireat("tSetKey", 8, &e_ret);
     log_info("Test ZExpireat with key=tSetKey at a passed timestamp=8, return %s", s.ToString().c_str());
-    int ret = n->SIsMember("tSetKey", "field12");
-    log_info("      Get a invalid key return %d, [1|0] expect false", ret);
+    n->SIsMember("tSetKey", "field12",&isMemeber);
+    log_info("      Get a invalid key return %d, [1|0] expect false", isMemeber);
     if (s.IsNotFound()) {
         n->STTL("tSetKey", &ttl);
         log_info("          NotFound key's TTL is %ld\n", ttl);
@@ -465,7 +480,8 @@ int main()
             s = n->SPersist("tSetKey", &e_ret);
             log_info(" Test SPersist return %s", s.ToString().c_str());
         }
-        int ret = n->SIsMember("tSetKey", "field12");
+        bool ret;
+        n->SIsMember("tSetKey", "field12",&ret);
         log_info("          after %ds, SIsMember return %d, [true|false]", (i+1)*3, ret);
         if (ret) {
             s = n->STTL("tSetKey", &ttl);

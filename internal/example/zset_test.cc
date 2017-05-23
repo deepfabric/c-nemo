@@ -39,14 +39,17 @@ int main()
     s = n->ZAdd("tZSetKey", 0, "field11", &zadd_res);
     log_info("======ZAdd  return %s", s.ToString().c_str());
     log_info("  ======After zadd ZCard======");
-    log_info("  Test ZCard, return card is %ld", n->ZCard("tZSetKey"));
+    int64_t zcard_sum;
+    n->ZCard("tZSetKey",&zcard_sum);
+    log_info("  Test ZCard, return card is %ld", zcard_sum);
     log_info("");
 
     log_info("======Test ZExpire======");
     s = n->ZExpire("tZSetKey", 7, &e_ret);
     log_info("Test ZExpire with key=tZSetKey in 7s, return %s", s.ToString().c_str());
     log_info("  ======After zexpire ZCard======");
-    log_info("  Test ZCard, return card is %ld", n->ZCard("tZSetKey"));
+    n->ZCard("tZSetKey",&zcard_sum);
+    log_info("  Test ZCard, return card is %ld", zcard_sum);
     log_info("");
 
     for (int i = 0; i < 3; i++) {

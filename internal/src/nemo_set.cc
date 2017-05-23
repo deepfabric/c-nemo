@@ -203,23 +203,25 @@ int Nemo::IncrSSize(const std::string &key, int64_t incrCount, int64_t incrVol, 
     return 0;
 }
 
-int64_t Nemo::SCard(const std::string &key) {
+Status Nemo::SCard(const std::string &key,int64_t * sum) {
     std::string size_key = EncodeSSizeKey(key);
     std::string val;
     Status s;
 
     s = set_db_->Get(rocksdb::ReadOptions(), size_key, &val);
     if (s.IsNotFound()) {
-        return 0;
+        *sum = 0;
     } else if(!s.ok()) {
-        return -1;
+        *sum = -1;
     } else {
         if (val.size() != sizeof(int64_t) * 2 ) {
-            return 0;
+            *sum =  -1;
+            return Status::Corruption("set sizekey value size error");
         }
         int64_t ret = *(int64_t *)val.data();
-        return ret < 0 ? 0 : ret;
+        *sum = ret < 0 ? 0 : ret;
     }
+    return s;
 }
 
 Status Nemo::SVolume(const std::string &key,int64_t* s_len, int64_t* s_vol) {
@@ -321,7 +323,9 @@ Status Nemo::SUnionStore(const std::string &destination, const std::vector<std::
     int64_t tmp_res;
 
     RecordLock l(&mutex_set_record_, destination);
-    if (SCard(destination) > 0) {
+    int64_t sum = 0;
+    SCard(destination,&sum);
+    if (sum > 0) {
         SIterator *iter = SScan(destination, -1, true);
         for (; iter->Valid(); iter->Next()) {
             s = SRemNoLock(destination, iter->member(), &tmp_res);
@@ -343,13 +347,16 @@ Status Nemo::SUnionStore(const std::string &destination, const std::vector<std::
     return Status::OK();
 }
 
-bool Nemo::SIsMember(const std::string &key, const std::string &member) {
+Status Nemo::SIsMember(const std::string &key, const std::string &member,bool * isMember) {
     std::string val;
 
     std::string set_key = EncodeSetKey(key, member);
     Status s = set_db_->Get(rocksdb::ReadOptions(), set_key, &val);
-
-    return s.ok();
+    if(s.ok())
+        *isMember = true;
+    else
+        *isMember = false;
+    return s;
 }
 
 //Note: no lock
@@ -365,7 +372,9 @@ Status Nemo::SInter(const std::vector<std::string> &keys, std::vector<std::strin
         int i = 1;
         std::string member = iter->member();
         for (; i < numkey; i++) {
-            if (!SIsMember(keys[i], member)) {
+            bool isMember;
+            SIsMember(keys[i], member,&isMember);
+            if (!isMember) {
                 break;
             }
         }
@@ -401,7 +410,9 @@ Status Nemo::SInterStore(const std::string &destination, const std::vector<std::
         int i = 1;
         std::string member = iter->member();
         for (; i < numkey; i++) {
-            if (!SIsMember(keys[i], member)) {
+            bool isMember;
+            SIsMember(keys[i], member,&isMember);
+            if (!isMember) {
                 break;
             }
         }
@@ -416,7 +427,9 @@ Status Nemo::SInterStore(const std::string &destination, const std::vector<std::
     int64_t tmp_res;
 
     //RecordLock l(&mutex_set_record_, destination);
-    if (SCard(destination) > 0) {
+    int64_t sum = 0;
+    SCard(destination,&sum);
+    if ( sum > 0) {
         SIterator *iter = SScan(destination, -1, true);
         for (; iter->Valid(); iter->Next()) {
             s = SRemNoLock(destination, iter->member(), &tmp_res);
@@ -459,7 +472,9 @@ Status Nemo::SDiff(const std::vector<std::string> &keys, std::vector<std::string
         int i = 1;
         std::string member = iter->member();
         for (; i < numkey; i++) {
-            if (SIsMember(keys[i], member)) {
+            bool isMember;
+            SIsMember(keys[i], member,&isMember);
+            if (isMember) {
                 break;
             }
         }
@@ -487,7 +502,9 @@ Status Nemo::SDiffStore(const std::string &destination, const std::vector<std::s
         int i = 1;
         std::string member = iter->member();
         for (; i < numkey; i++) {
-            if (SIsMember(keys[i], member)) {
+            bool isMember;
+            SIsMember(keys[i], member,&isMember);       
+            if (isMember) {
                 break;
             }
         }
@@ -502,7 +519,9 @@ Status Nemo::SDiffStore(const std::string &destination, const std::vector<std::s
     int64_t tmp_res;
 
     RecordLock l(&mutex_set_record_, destination);
-    if (SCard(destination) > 0) {
+    int64_t sum = 0;
+    SCard(destination,&sum);
+    if (sum > 0) {
         SIterator *iter = SScan(destination, -1, true);
         for (; iter->Valid(); iter->Next()) {
             s = SRemNoLock(destination, iter->member(), &tmp_res);
@@ -565,7 +584,8 @@ void Nemo::ResetSpopCount(const std::string &key) {
 
 Status Nemo::SPop(const std::string &key, std::string &member) {
 #define SPOP_COMPACT_THRESHOLD_COUNT 500
-    int card = SCard(key);
+    int64_t card = 0;
+    SCard(key,&card);
     if (card <= 0) {
         return Status::NotFound();
     }
@@ -607,7 +627,8 @@ Status Nemo::SRandMember(const std::string &key, std::vector<std::string> &membe
         return Status::OK();
     }
 
-    int card = SCard(key);
+    int64_t card = 0;
+    SCard(key,&card);
     if (card <= 0) {
         return Status::NotFound();
     }

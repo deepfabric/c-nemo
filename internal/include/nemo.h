@@ -135,14 +135,15 @@ public:
     Status HSet(const std::string &key, const std::string &field, const std::string &val, int * res);
     Status HGet(const std::string &key, const std::string &field, std::string *val);
     Status HDel(const std::string &key, const std::string &field);
-    bool HExists(const std::string &key, const std::string &field);
+    Status HMDel(const std::string &key, const std::vector<std::string> &fields, std::vector<Status> & res);
+    Status HExists(const std::string &key, const std::string &field, bool * ifExist);    
     Status HKeys(const std::string &key, std::vector<std::string> &keys);
     Status HGetall(const std::string &key, std::vector<FV> &fvs);
-    int64_t HLen(const std::string &key);
+    Status HLen(const std::string &key,int64_t * len);
     Status HMSet(const std::string &key, const std::vector<FV> &fvs,int * res_list);
     Status HMGet(const std::string &key, const std::vector<std::string> &keys, std::vector<FVS> &fvss);
     Status HSetnx(const std::string &key, const std::string &field, const std::string &val);
-    int64_t HStrlen(const std::string &key, const std::string &field);
+    Status HStrlen(const std::string &key, const std::string &field, int64_t * res_len);
     HIterator* HScan(const std::string &key, const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot = false);
     Status HVals(const std::string &key, std::vector<std::string> &vals);
     Status HIncrby(const std::string &key, const std::string &field, int64_t by, std::string &new_val);
@@ -170,9 +171,9 @@ public:
 
     // ==============ZSet=====================
     Status ZAdd(const std::string &key, const double score, const std::string &member, int64_t *res);
-    int64_t ZCard(const std::string &key);
+    Status ZCard(const std::string &key,int64_t * sum);
     Status ZVolume(const std::string &key,int64_t* s_len, int64_t* s_vol);
-    int64_t ZCount(const std::string &key, const double begin, const double end, bool is_lo = false, bool is_ro = false);
+    Status ZCount(const std::string &key, const double begin, const double end,int64_t * sum,bool is_lo=false, bool is_ro=false);
     ZIterator* ZScan(const std::string &key, const double begin, const double end, uint64_t limit, bool use_snapshot = false);
     Status ZIncrby(const std::string &key, const std::string &member, const double by, std::string &new_val);
 
@@ -195,7 +196,7 @@ public:
     // ==============Set=====================
     Status SAdd(const std::string &key, const std::string &member, int64_t *res);
     Status SRem(const std::string &key, const std::string &member, int64_t *res);
-    int64_t SCard(const std::string &key);
+    Status SCard(const std::string &key,int64_t * sum);
     Status SVolume(const std::string &key,int64_t* s_len, int64_t* s_vol);
     SIterator* SScan(const std::string &key, uint64_t limit, bool use_snapshot = false);
     Status SMembers(const std::string &key, std::vector<std::string> &vals);
@@ -205,7 +206,7 @@ public:
     Status SInter(const std::vector<std::string> &keys, std::vector<std::string>& members);
     Status SDiffStore(const std::string &destination, const std::vector<std::string> &keys, int64_t *res);
     Status SDiff(const std::vector<std::string> &keys, std::vector<std::string>& members);
-    bool SIsMember(const std::string &key, const std::string &member);
+    Status SIsMember(const std::string &key, const std::string &member,bool * isMember);
     Status SPop(const std::string &key, std::string &member);
     Status SRandMember(const std::string &key, std::vector<std::string> &members, const int count = 1);
     Status SMove(const std::string &source, const std::string &destination, const std::string &member, int64_t *res);

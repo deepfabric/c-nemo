@@ -1165,7 +1165,8 @@ Status Nemo::ExistsSingleKey(const std::string &key) {
         return s;
     }
 
-    int64_t len = HLen(key);
+    int64_t len =0;
+    s = HLen(key,&len);
     if (len > 0) {
       return Status::OK();
     }
@@ -1175,12 +1176,12 @@ Status Nemo::ExistsSingleKey(const std::string &key) {
       return s;
     }
 
-    len = ZCard(key);
+    s = ZCard(key,&len);
     if (len > 0) {
       return Status::OK();
     }
 
-    len = SCard(key);
+    s = SCard(key,&len);
     if (len > 0) {
       return Status::OK();
     }

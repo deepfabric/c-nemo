@@ -197,7 +197,8 @@ int main()
         s = n->ZScore("key", "zsetMember1", &score);
         log_info("          after %ds, ZScore return %s", (i+1)*3, s.ToString().c_str());
 
-        int ret = n->SIsMember("key", "member1");
+        bool ret;
+        n->SIsMember("key", "member1",&ret);
         log_info("          after %ds, SIsMember return %d, [true|false]", (i+1)*3, ret);
 
         s = n->LIndex("key", 0, &res);

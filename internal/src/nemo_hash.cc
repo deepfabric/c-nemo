@@ -141,6 +141,37 @@ Status Nemo::HDel(const std::string &key, const std::string &field) {
         return Status::Corruption("DoHDel error");
     }
 }
+//add HMDel for redis api
+Status Nemo::HMDel(const std::string &key, const std::vector<std::string> &fields, std::vector<Status> & res) {
+    if (key.size() >= KEY_MAX_LENGTH || key.size() <= 0) {
+       return Status::InvalidArgument("Invalid key length");
+    }
+
+    Status s;
+    RecordLock l(&mutex_hash_record_, key);
+    rocksdb::WriteBatch writebatch;
+    int del_sum = 0;
+    for(std::string field:fields)
+    {
+        int64_t ret = DoHDel(key, field, writebatch);
+        if (ret > 0) {
+            if (IncrHSize(key, -1, -key.size()-field.size()-ret, writebatch) == -1){
+                return Status::Corruption("incrlen error");
+            }
+            else{
+                del_sum++;
+                res.push_back(Status::OK());
+            }
+        } else if (ret == 0) {
+            res.push_back(Status::NotFound());
+        } else {
+            res.push_back(Status::Corruption("DoHDel error"));
+        }
+    }
+    if(del_sum>0)
+        s = hash_db_->Write(rocksdb::WriteOptions(), &(writebatch));
+    return Status::OK();
+}
 
 // Note: No lock, Internal use only!!
 Status Nemo::HDelKey(const std::string &key, int64_t *res) {
@@ -227,16 +258,17 @@ Status Nemo::HTTL(const std::string &key, int64_t *res) {
     return s;
 }
 
-bool Nemo::HExists(const std::string &key, const std::string &field) {
+Status Nemo::HExists(const std::string &key, const std::string &field, bool * ifExist) {
     Status s;
     std::string dbkey = EncodeHashKey(key, field);
     std::string val;
     s = hash_db_->Get(rocksdb::ReadOptions(), dbkey, &val);
     if (s.ok()) {
-        return true;
+        *ifExist = true;
     } else {
-        return false;
+        *ifExist = false;
     }
+    return s;
 }
 
 Status Nemo::HPersist(const std::string &key, int64_t *res) {
@@ -327,14 +359,18 @@ Status Nemo::HKeys(const std::string &key, std::vector<std::string> &fields) {
     return Status::OK();
 }
 
-int64_t Nemo::HLen(const std::string &key) {
+Status Nemo::HLen(const std::string &key,int64_t * len) {
     HashMeta meta;
     if(HSize(key,meta)){
-        return meta.len;
+        *len = meta.len;
+        return Status::OK();
     }
-    else
-        return -1;
+    else{
+        *len = -1;
+        return Status::Corruption("hash meta key corruption");
+    }  
 }
+
 bool Nemo::HSize(const std::string &key, HashMeta & meta) {
     std::string size_key = EncodeHsizeKey(key);
     std::string val;
@@ -483,17 +519,18 @@ Status Nemo::HSetnx(const std::string &key, const std::string &field, const std:
     }
 }
 
-int64_t Nemo::HStrlen(const std::string &key, const std::string &field) {
+Status Nemo::HStrlen(const std::string &key, const std::string &field, int64_t * res_len) {
     Status s;
     std::string val;
     s = HGet(key, field, &val);
     if (s.ok()) {
-        return val.length();
+        *res_len = val.length();
     } else if (s.IsNotFound()) {
-        return 0;
+        *res_len = 0;
     } else {
-        return -1;
+        *res_len = -1;
     }
+    return s;
 }
 
 Status Nemo::HVals(const std::string &key, std::vector<std::string> &vals) {
@@ -626,8 +663,9 @@ int64_t Nemo::DoHDel(const std::string &key, const std::string &field, rocksdb::
 }
 
 int Nemo::IncrHLen(const std::string &key, int64_t incr, rocksdb::WriteBatch &writebatch) {
-    int64_t len = HLen(key);
-    if (len == -1) {
+    int64_t len = 0;
+    Status s = HLen(key,&len);
+    if (!s.ok()) {
         return -1;
     }
     len += incr;

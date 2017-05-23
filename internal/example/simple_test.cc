@@ -22,12 +22,33 @@ int main() {
   std::string res;
   Status s ;
   int HSetRes;
+  //test for HMDel
+  s = n->HSet("HMDel", "field1", "val1", &HSetRes);
+  assert(s.ok());
+  s = n->HSet("HMDel", "field2", "val2", &HSetRes);
+  assert(s.ok()); 
+  std::vector<std::string> fields(0);   
+  fields.push_back("field1");
+  fields.push_back("field2");
+  fields.push_back("field3");  
+  std::vector<Status> ss(0);
+  s = n->HMDel("HMDel",fields,ss);
+  assert(s.ok());
+  assert(ss[0].ok());
+  assert(ss[1].ok());
+  assert(ss[2].IsNotFound());
+  std::cout <<"HMDel OK"<< std::endl;
+
   s = n->HSet("Key", "field1", "val1", &HSetRes);
   assert(s.ok());
   s = n->HSet("Key", "field2", "val2", &HSetRes);
   assert(s.ok());  
-  int64_t l = n->HLen("Key");
+  int64_t l ;
+  s = n->HLen("Key", &l);
+  assert(s.ok());   
   std::cout << "HLen return: " << l << std::endl;
+
+
 
   rocksdb::DBNemo * meta = n->GetMetaHandle();
 

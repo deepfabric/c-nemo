@@ -52,8 +52,13 @@ int main()
      */
     n->LLen("tLPushKey", &llen);
     log_info("Origin LLen return %ld", llen);
-    log_info("Origin ZCard, return %ld", n->ZCard("key"));
-    log_info("Origin SCard, return %ld", n->SCard("key"));
+    int64_t zcard_sum;
+    s = n->ZCard("key",&zcard_sum);
+    assert(s.ok());
+    log_info("Origin ZCard, return %ld", zcard_sum);
+    int64_t SCard_res = 0;
+    n->SCard("key",&SCard_res);    
+    log_info("Origin SCard, return %ld", SCard_res);
     log_info("");
 
     std::vector<FV> fvs;
@@ -220,7 +225,8 @@ int main()
     std::vector<SM>::iterator it_sm;
     log_info("======Test ZSet======");
     sms.clear();
-    log_info("New ZCard, return %ld", n->ZCard("key"));
+    s = n->ZCard("key",&zcard_sum);
+    log_info("New ZCard, return %ld", zcard_sum);
     s = n2->ZRange("key", 0, -1, sms);
     log_info("ZRange key return %s, expect 2 [member1, member2]", s.ToString().c_str());
     for (it_sm = sms.begin(); it_sm != sms.end(); it_sm++) {
