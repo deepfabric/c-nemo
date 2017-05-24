@@ -15,7 +15,6 @@ extern "C" {
 typedef	struct nemo_t nemo_t;
 typedef	struct nemo_options_t nemo_options_t;
 typedef	struct nemo_Iterator_t nemo_Iterator_t;
-typedef	struct nemo_RawIterator_t nemo_RawIterator_t;
 typedef	struct nemo_KIterator_t nemo_KIterator_t;
 typedef	struct nemo_HIterator_t nemo_HIterator_t;
 typedef	struct nemo_ZIterator_t nemo_ZIterator_t;
@@ -101,7 +100,7 @@ extern void nemo_MSet(nemo_t * nemo, int const num,const char ** key, size_t * k
 extern void nemo_MGet(nemo_t * nemo,  const int num, const char ** key, size_t * keylen, \
 	 		             		                                     char ** val, size_t * vallen, char ** errs);
 extern nemo_KIterator_t  * nemo_KScan(nemo_t *nemo, const char * start,const size_t startlen, 
-								const char * end, const size_t endlen, uint64_t limit,bool use_snapshot);
+								const char * end, const size_t endlen, uint64_t limit,bool use_snapshot);					
 extern void KNext(nemo_KIterator_t * it);
 extern bool KValid(nemo_KIterator_t * it);
 extern void Kkey(nemo_KIterator_t * it,char ** key ,size_t* keylen);
@@ -374,13 +373,9 @@ extern void nemo_DeleteWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,
 								const char * key, const size_t keylen, 
 								char ** errptr); 
 
-extern nemo_RawIterator_t * nemo_RawScanWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,bool use_snapshot);
-extern void RawNext(nemo_RawIterator_t * it);
-extern bool RawValid(nemo_RawIterator_t * it);
-extern void RawKey(nemo_RawIterator_t * it,char ** key ,size_t* keylen);
-extern void RawValue(nemo_RawIterator_t * it,char ** value ,size_t* valuelen);
-extern void RawSeek(nemo_RawIterator_t * it,const char * key,const size_t keylen);
-extern void RawIteratorFree(nemo_RawIterator_t * it);
+extern nemo_KIterator_t  * nemo_KScanWithHandle(nemo_t *nemo, nemo_DBNemo_t * db,const char * start,const size_t startlen, const char * end, const size_t endlen, bool use_snapshot);
+
+extern void nemo_SeekWithHandle(nemo_t *nemo, nemo_DBNemo_t * db,const char * start,const size_t startlen, char ** NextKey, size_t * NextKeylen,char ** NextVal, size_t * NextVallen,char ** errptr);
 
 extern nemo_VolumeIterator_t * createVolumeIterator(nemo_t * nemo,
 								const char * start, const size_t startlen, 

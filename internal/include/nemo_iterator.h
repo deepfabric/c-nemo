@@ -57,22 +57,6 @@ private:
     void operator=(Iterator&);
 };
 
-class RawIterator : public Iterator {
-public:
-    RawIterator(rocksdb::Iterator *it, rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options):
-            Iterator(it,db_nemo,iter_options){}
-    virtual void Next()     {it_->Next();}
-    virtual bool Valid()    {return it_->Valid();}
-    void Seek(std::string &key){it_->Seek(key);}
-    std::string key()       { return std::string(it_->key().data(),it_->key().size());}
-    std::string value()     { return std::string(it_->value().data(),it_->value().size());}
-private:
-    //No Copying Allowed
-    RawIterator(RawIterator&);
-    void operator=(RawIterator&);
-};
-
-
 class KIterator : public Iterator {
 public:
     KIterator(rocksdb::Iterator *it, rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options);

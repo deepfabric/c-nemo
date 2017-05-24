@@ -22,7 +22,6 @@ using nemo::DBType;
 using nemo::Position;
 using nemo::Aggregate;
 using nemo::Iterator;
-using nemo::RawIterator;
 using nemo::KIterator;
 using nemo::HIterator;
 using nemo::ZIterator;
@@ -44,8 +43,7 @@ extern "C"	{
 
 	struct nemo_t {	Nemo * rep;	};
 	struct nemo_options_t { Options rep; };
-	struct nemo_Iterator_t { Iterator * rep;};
-	struct nemo_RawIterator_t { RawIterator * rep;};	
+	struct nemo_Iterator_t { Iterator * rep;};	
 	struct nemo_KIterator_t { KIterator * rep;};
 	struct nemo_HIterator_t { HIterator * rep;};
 	struct nemo_ZIterator_t { ZIterator * rep;};
@@ -319,6 +317,34 @@ extern "C"	{
 		nemo_KIterator_t * it = new nemo_KIterator_t;
 		it->rep = nemo->rep->KScan(std::string(start,startlen),std::string(end,endlen),limit_cpp,use_snapshot);
 		return it;		
+	}
+
+	nemo_KIterator_t  * nemo_KScanWithHandle(nemo_t *nemo, nemo_DBNemo_t * db,const char * start,const size_t startlen, const char * end, const size_t endlen, bool use_snapshot){
+		nemo_KIterator_t * it = new nemo_KIterator_t;
+		it->rep = nemo->rep->KScanWithHandle(db->rep,std::string(start,startlen),std::string(end,endlen),use_snapshot);
+		return it;		
+	}
+
+	void nemo_SeekWithHandle(nemo_t *nemo, nemo_DBNemo_t * db,const char * start,const size_t startlen, char ** NextKey, size_t * NextKeylen,char ** NextVal, size_t * NextVallen,char ** errptr){
+		std::string start_str,NextKey_str,NextVal_str;
+		start_str.assign(start,startlen);
+		Status s = nemo->rep->SeekWithHandle(db->rep, start_str,&NextKey_str,&NextVal_str);
+		if(s.ok())
+		{
+			*NextKey = CopyString(NextKey_str);
+			*NextKeylen = NextKey_str.size();
+			*NextVal = CopyString(NextVal_str);
+			*NextVallen = NextVal_str.size();
+			*errptr = nullptr;
+		}
+		else if(s.IsNotFound())
+		{
+			*NextKey = nullptr;
+			*NextKeylen = 0;
+			*NextVal = nullptr;
+			*NextVallen = 0;			
+			*errptr = nullptr;
+		}
 	}
 
 	void KNext(nemo_KIterator_t * it)
@@ -1137,40 +1163,6 @@ extern "C"	{
 		nemo_SaveError(errptr,nemo->rep->DeleteWithHandle(db->rep,keystr));	
 	}
 
-	nemo_RawIterator_t * nemo_RawScanWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,bool use_snapshot)
-	{
-		nemo_RawIterator_t * it = new nemo_RawIterator_t;	
-		it->rep = nemo->rep->RawScanWithHandle(db->rep,use_snapshot);
-		return it;
-	}
-	void RawNext(nemo_RawIterator_t * it)
-	{
-		it->rep->Next();
-	}
-	bool RawValid(nemo_RawIterator_t * it){
-		return it->rep->Valid();	
-	}
-	void RawKey(nemo_RawIterator_t * it,char ** key ,size_t* keylen)
-	{
-		*key = CopyString(it->rep->key());
-		*keylen = it->rep->key().size();
-	}
-	void RawValue(nemo_RawIterator_t * it,char ** value ,size_t* valuelen)
-	{
-		*value = CopyString(it->rep->value());
-		*valuelen = it->rep->value().size();
-	}
-	void RawSeek(nemo_RawIterator_t * it,const char * key,const size_t keylen)
-	{
-		std::string strkey(key,keylen);
-		it->rep->Seek(strkey);
-	}
-	void RawIteratorFree(nemo_RawIterator_t * it)
-	{
-		delete it->rep;
-		delete it;
-	}
-
 	nemo_VolumeIterator_t * createVolumeIterator(nemo_t * nemo,
 								const char * start, const size_t startlen, 
 								const char * end ,const size_t endlen,
@@ -1179,7 +1171,7 @@ extern "C"	{
 		nemo_VolumeIterator_t * it = new nemo_VolumeIterator_t;
 		std::string startstr(start,startlen);
 		std::string endstr(end,endlen);	
-		it->rep = new nemo::VolumeIterator(nemo->rep,startstr,endstr,false);
+		it->rep = new nemo::VolumeIterator(nemo->rep,startstr,endstr,true);
 		return it;
 	}
 

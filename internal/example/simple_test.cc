@@ -46,9 +46,16 @@ int main() {
   assert(s.ok());   
   std::cout << "HLen return: " << l << std::endl;
 
-
-
   rocksdb::DBNemo * meta = n->GetMetaHandle();
+
+  std::string nKey,nVal,startkey;
+  startkey = "";
+  s = n->PutWithHandle(meta,"AFirstKey","FirstVal");
+  assert(s.ok());
+  s = n->SeekWithHandle(meta,startkey,&nKey,&nVal);
+  assert(s.ok());
+  assert(nKey == "AFirstKey");
+  assert(nVal == "FirstVal");
 
   s = n->PutWithHandle(meta,"Hello","World");
   assert(s.ok());

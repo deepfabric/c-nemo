@@ -407,15 +407,20 @@ KIterator* Nemo::KScanWithHandle(rocksdb::DBNemo * db, const std::string &start,
     return new KIterator(it, db, iter_options); 
 }
 
-RawIterator* Nemo::RawScanWithHandle(rocksdb::DBNemo * db,bool use_snapshot) {
-    rocksdb::ReadOptions read_options;
-    if (use_snapshot) {
-        read_options.snapshot = db->GetSnapshot();
+Status Nemo::SeekWithHandle( rocksdb::DBNemo * db, std::string & start,std::string * nextKey,std::string * nextValue ){
+
+    KIterator * kit = KScanWithHandle(db,start,"",1,false);
+    if(kit->Valid())
+    {
+        nextKey->assign(kit->key().data(),kit->key().size());
+        nextValue->assign(kit->value().data(),kit->value().size());
+        delete kit;
+        return Status::OK();
     }
-    read_options.fill_cache = false;
-    IteratorOptions iter_options("", 0, read_options);
-    rocksdb::Iterator *it = db->NewIterator(read_options);
-    return new RawIterator(it, db, iter_options); 
+    else{
+        delete kit;
+        return Status::NotFound();
+    }
 }
 
 Status Nemo::GetStartKey(int64_t cursor, std::string* start_key) {
