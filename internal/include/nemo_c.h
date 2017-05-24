@@ -167,7 +167,7 @@ extern void nemo_HGet(nemo_t * nemo,const char * key,const size_t keylen,const c
 
 extern void nemo_HDel(nemo_t * nemo,const char * key,const size_t keylen,const char * field, const size_t fieldlen,char ** errptr);
 
-extern void nemo_HMDel(nemo_t * nemo,const char * key,const size_t keylen,int num,const char ** fieldlist,const size_t * fieldlen, char ** errs,char ** errptr);
+extern void nemo_HMDel(nemo_t * nemo,const char * key,const size_t keylen,int num,const char ** fieldlist,const size_t * fieldlen, int64_t * res,char ** errptr);
 
 extern void nemo_HExists(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen, bool * ifExists,char ** errptr);
 
@@ -184,7 +184,7 @@ extern void nemo_HMSet(nemo_t * nemo,const char * key, const size_t keylen,const
 extern void nemo_HMGet(nemo_t * nemo,const char * key, const size_t keylen,const int num, const char ** field_list,const size_t * field_list_len, \
                                    char ** value_list,size_t * value_list_strlen, char ** errs,char ** errptr); 
 
-extern void nemo_HSetnx(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,const char * value, const size_t vallen,char ** errptr);
+extern void nemo_HSetnx(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,const char * value, const size_t vallen,int64_t * res, char ** errptr);
 
 extern void nemo_HStrlen(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,int64_t * res_len ,char **errptr);
 
@@ -230,7 +230,11 @@ extern	void nemo_LRem(nemo_t * nemo,const char * key,const size_t keylen, const 
 
 extern 	void nemo_SAdd(nemo_t * nemo,const char * key,const size_t keylen, const char * member,const size_t memberlen,int64_t *res,char ** errptr);
 
+extern 	void nemo_SMAdd(nemo_t * nemo,const char * key,const size_t keylen,const int num, const char ** member,const size_t * memberlen,int64_t *res,char ** errptr);
+
 extern 	void nemo_SRem(nemo_t * nemo,const char * key,const size_t keylen, const char * member,const size_t memberlen,int64_t *res,char ** errptr);
+
+extern 	void nemo_SMRem(nemo_t * nemo,const char * key,const size_t keylen,const int num, const char ** member,const size_t * memberlen,int64_t *res,char ** errptr);
 
 extern 	void nemo_SCard(nemo_t * nemo,const char * key,const size_t keylen,int64_t * sum, char ** errptr );
 
@@ -269,6 +273,8 @@ extern  void nemo_SMove(nemo_t * nemo,const char * source,const size_t slen,cons
 
 extern void nemo_ZAdd(nemo_t * nemo,const char * key, const size_t keylen, const double score, const char * member,const size_t memlen,int64_t *res,char ** errptr);
 
+extern void nemo_ZMAdd(nemo_t * nemo,const char * key, const size_t keylen, const int num, const double *score, const char ** member,const size_t *memlen,int64_t *res,char ** errptr);
+
 extern void nemo_ZCard(nemo_t * nemo,const char * key,const size_t keylen,int64_t * sum, char ** errptr);
 
 extern void nemo_ZCount(nemo_t * nemo,const char * key,const size_t keylen,const double begin,const double end ,int64_t* sum, bool is_lo,bool is_ro,char ** errptr);
@@ -292,6 +298,8 @@ extern void nemo_ZRangebyScore(nemo_t * nemo,const char * key,const size_t keyle
 							bool is_lo, bool is_ro, char ** errptr);
                 
 extern void nemo_ZRem(nemo_t * nemo,const char * key,const size_t keylen, const char * member,const size_t memlen,int64_t *res,char ** errptr);
+
+extern 	void nemo_ZMRem(nemo_t * nemo,const char * key,const size_t keylen,const int num, const char ** member,const size_t * memlen,int64_t *res,char ** errptr);
 
 extern void nemo_ZRank(nemo_t * nemo,const char * key,const size_t keylen, const char * member,const size_t memlen,int64_t *rank,char ** errptr);
 

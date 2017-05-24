@@ -189,6 +189,55 @@ Status Nemo::ZAdd(const std::string &key, const double score, const std::string 
         return Status::Corruption("zadd error");
     }
 }
+//add ZMAdd for redis api
+Status Nemo::ZMAdd(const std::string &key, const std::vector<SM> &sms, int64_t * res) {
+    if (key.size() >= KEY_MAX_LENGTH || key.size() <= 0) {
+       return Status::InvalidArgument("Invalid key length");
+    }
+
+    Status s;
+    for(SM sm:sms){
+        if (sm.score < ZSET_SCORE_MIN || sm.score > ZSET_SCORE_MAX) {
+        return Status::InvalidArgument("score overflow");
+        }
+    }
+
+    if (key.size() >= KEY_MAX_LENGTH) {
+       return Status::InvalidArgument("Invalid key length");
+    }
+
+    //std::string db_key = EncodeZSetKey(key, member);
+    //std::string size_key = EncodeZSizeKey(key);
+    //std::string score_key = EncodeZScoreKey(key, member, score); 
+    rocksdb::WriteBatch batch;
+    //MutexLock l(&mutex_zset_);
+    RecordLock l(&mutex_zset_record_, key);
+
+    int64_t count = 0;
+    (*res) = 0;
+    for(SM sm:sms)
+    {
+        int ret = DoZSet(key, sm.score, sm.member, batch);
+        if (ret == 2) {
+            if (IncrZLen(key, 1, key.size()*2+sm.member.size()*2+sizeof(double)+sizeof(int64_t), batch) == 0) {
+                (*res)++;
+                count++;
+            } else {
+                return Status::Corruption("incr zsize error");
+            }
+        } else if (ret == 1){
+            count++;
+        }else if(ret == 0){
+            continue;
+        }
+        else{
+            return Status::Corruption("zadd error");
+        } 
+    }
+    if(count > 0)
+        s = zset_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &batch);
+    return s;
+}
 
 Status Nemo::ZAddNoLock(const std::string &key, const double score, const std::string &member, int64_t *res) {
     Status s;
@@ -670,6 +719,48 @@ Status Nemo::ZRem(const std::string &key, const std::string &member, int64_t *re
       return s;
     }
 }
+
+Status Nemo::ZMRem(const std::string &key, const std::vector<std::string> &members, int64_t *res) {
+    if (key.size() >= KEY_MAX_LENGTH || key.size() <= 0) {
+       return Status::InvalidArgument("Invalid key length");
+    }
+
+    Status s;
+    *res = 0;
+    rocksdb::WriteBatch batch;
+    std::string old_score;
+
+    //MutexLock l(&mutex_zset_);
+    RecordLock l(&mutex_zset_record_, key);
+    *res = 0;
+    for(std::string member:members)
+    {
+        std::string db_key = EncodeZSetKey(key, member);
+        s = zset_db_->Get(rocksdb::ReadOptions(), db_key, &old_score);
+
+        if (s.ok()) {
+            batch.Delete(db_key);
+            double dscore = *((double *)old_score.data());
+            std::string score_key = EncodeZScoreKey(key, member, dscore);
+            batch.Delete(score_key);
+            if (IncrZLen(key, -1, -(key.size()*2+member.size()*2+sizeof(double)+sizeof(int64_t)),batch) == 0) {
+                (*res)++;
+            } else {
+                return Status::Corruption("incr zsize error");
+            }
+        } else if(s.IsNotFound()){
+            continue;
+        }
+        else
+        {
+            return s;
+        }
+    }
+    if(*res > 0)
+        s = zset_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &batch);
+    return s;
+}
+
 
 Status Nemo::ZRank(const std::string &key, const std::string &member, int64_t *rank) {
     Status s;

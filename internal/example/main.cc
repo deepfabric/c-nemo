@@ -652,9 +652,10 @@ int main()
      *  Test HSetnx
      */
     log_info("======Test HSetnx======");
-    s = n->HSetnx("tHSetnxKey", "song", "tHSetnxVal");
+    int64_t HSetnx_res = 0;
+    s = n->HSetnx("tHSetnxKey", "song", "tHSetnxVal",&HSetnx_res);
     log_info("test HSetnx with non-existed key | fields return %s", s.ToString().c_str());
-    s = n->HSetnx("tHSetnxKey", "song", "tHSetnxVal");
+    s = n->HSetnx("tHSetnxKey", "song", "tHSetnxVal",&HSetnx_res);
     log_info("test HSetnx with existed key | fields return %s", s.ToString().c_str());
 
     //just delete all key-value set before

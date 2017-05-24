@@ -142,7 +142,7 @@ Status Nemo::HDel(const std::string &key, const std::string &field) {
     }
 }
 //add HMDel for redis api
-Status Nemo::HMDel(const std::string &key, const std::vector<std::string> &fields, std::vector<Status> & res) {
+Status Nemo::HMDel(const std::string &key, const std::vector<std::string> &fields, int64_t * res) {
     if (key.size() >= KEY_MAX_LENGTH || key.size() <= 0) {
        return Status::InvalidArgument("Invalid key length");
     }
@@ -150,7 +150,7 @@ Status Nemo::HMDel(const std::string &key, const std::vector<std::string> &field
     Status s;
     RecordLock l(&mutex_hash_record_, key);
     rocksdb::WriteBatch writebatch;
-    int del_sum = 0;
+    *res = 0;
     for(std::string field:fields)
     {
         int64_t ret = DoHDel(key, field, writebatch);
@@ -159,16 +159,16 @@ Status Nemo::HMDel(const std::string &key, const std::vector<std::string> &field
                 return Status::Corruption("incrlen error");
             }
             else{
-                del_sum++;
-                res.push_back(Status::OK());
+                (*res)++;
             }
-        } else if (ret == 0) {
-            res.push_back(Status::NotFound());
-        } else {
-            res.push_back(Status::Corruption("DoHDel error"));
+        } else if (ret == 0){
+            continue;
+        }
+        else {
+            return Status::Corruption("DoHDel error");
         }
     }
-    if(del_sum>0)
+    if(*res>0)
         s = hash_db_->Write(rocksdb::WriteOptions(), &(writebatch));
     return Status::OK();
 }
@@ -496,7 +496,7 @@ HmetaIterator * Nemo::HmetaScan( const std::string &start, const std::string &en
     return new HmetaIterator(it, hash_db_.get() ,iter_options,start); 
 }
 
-Status Nemo::HSetnx(const std::string &key, const std::string &field, const std::string &val) {
+Status Nemo::HSetnx(const std::string &key, const std::string &field, const std::string &val, int64_t * res) {
     Status s;
     std::string str_val;
     //MutexLock l(&mutex_hash_);
@@ -507,14 +507,18 @@ Status Nemo::HSetnx(const std::string &key, const std::string &field, const std:
         int ret = DoHSet(key, field, val, writebatch);
         if (ret > 0) {
             if (IncrHSize(key, ret,key.size()+field.size() + val.size() ,writebatch) == -1) {
+                *res = -1;
                 return Status::Corruption("incrhsize error");
             }
         }
         s = hash_db_->Write(rocksdb::WriteOptions(), &(writebatch));
+        *res = 1;
         return s;
     } else if(s.ok()) {
+        *res = 0;
         return Status::Corruption("Already Exist");
     } else {
+        *res = 1;        
         return Status::Corruption("HGet Error");
     }
 }

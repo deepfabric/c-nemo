@@ -97,6 +97,41 @@ Status Nemo::SAdd(const std::string &key, const std::string &member, int64_t *re
     return s;
 }
 
+Status Nemo::SMAdd(const std::string &key, const std::vector<std::string> &members, int64_t *res) {
+    if (key.size() >= KEY_MAX_LENGTH || key.size() <= 0) {
+       return Status::InvalidArgument("Invalid key length");
+    }
+
+    Status s;
+    RecordLock l(&mutex_set_record_, key);
+    //MutexLock l(&mutex_set_);
+    rocksdb::WriteBatch writebatch;
+    *res = 0;
+
+    for(std::string member:members){
+
+        std::string set_key = EncodeSetKey(key, member);
+        std::string val;
+        s = set_db_->Get(rocksdb::ReadOptions(), set_key, &val);
+
+        if (s.IsNotFound()) { // not found
+            (*res) ++;
+            if (IncrSSize(key, 1, (key.size()+member.size()), writebatch) < 0) {
+                return Status::Corruption("incrSSize error");
+            }
+            writebatch.Put(set_key, rocksdb::Slice());
+        } else if (s.ok()) {
+            continue;
+        } else {
+            return Status::Corruption("sadd check member error");
+        }
+    }
+    if(*res > 0)
+        s = set_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &(writebatch));
+    return s;
+}
+
+
 Status Nemo::SAddNoLock(const std::string &key, const std::string &member, int64_t *res) {
     Status s;
     rocksdb::WriteBatch writebatch;
@@ -149,6 +184,40 @@ Status Nemo::SRem(const std::string &key, const std::string &member, int64_t *re
     }
     return s;
 }
+
+Status Nemo::SMRem(const std::string &key, const std::vector<std::string> &members, int64_t *res) {
+    if (key.size() >= KEY_MAX_LENGTH || key.size() <= 0) {
+       return Status::InvalidArgument("Invalid key length");
+    }
+
+    Status s;
+    //MutexLock l(&mutex_set_);
+    RecordLock l(&mutex_set_record_, key);
+    rocksdb::WriteBatch writebatch;
+    *res = 0;
+    for(std::string member:members){
+        std::string set_key = EncodeSetKey(key, member);
+        std::string val;
+        s = set_db_->Get(rocksdb::ReadOptions(), set_key, &val);
+
+        if (s.ok()) {
+            (*res) ++;
+            if (IncrSSize(key, -1, -((key.size()+member.size())), writebatch) < 0) {
+                return Status::Corruption("incrSSize error");
+            }
+            writebatch.Delete(set_key);
+
+        } else if (s.IsNotFound()) {
+            continue;
+        } else {
+            return Status::Corruption("srem check member error");
+        }
+    }
+    if(*res>0)
+        s = set_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &(writebatch));
+    return s;
+}
+
 
 Status Nemo::SRemNoLock(const std::string &key, const std::string &member, int64_t *res) {
     Status s;

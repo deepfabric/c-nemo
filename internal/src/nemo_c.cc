@@ -415,21 +415,14 @@ extern "C"	{
 	void nemo_HDel(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen, char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->HDel(std::string(key,keylen),std::string(field,fieldlen)));
 	}
-	void nemo_HMDel(nemo_t * nemo,const char * key,const size_t keylen,int num,const char ** fieldlist,const size_t * fieldlen, char ** errs,char ** errptr){
-		std::vector<std::string>fields(0);
+	void nemo_HMDel(nemo_t * nemo,const char * key,const size_t keylen,int num,const char ** fieldlist,const size_t * fieldlen, int64_t * res,char ** errptr){
+		std::vector<std::string>fields(num);
 		for(int i = 0;i<num;i++)
 		{	
-			std::string field;
-			field.assign(fieldlist[i],fieldlen[i]);
-			fields.push_back(field);
+			fields[i].assign(fieldlist[i],fieldlen[i]);
 		}
-		std::vector<Status> res(0);
 		nemo_SaveError(errptr,nemo->rep->HMDel(std::string(key,keylen),fields,res));
-		for(int i = 0;i<num;i++)
-		{
-			errs[i] = strdup(res[i].ToString().c_str());			
-		}
-	}	
+	}
 	void nemo_HExists(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen, bool * ifExists,char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->HExists(std::string(key,keylen),std::string(field,fieldlen),ifExists));
 	}
@@ -509,8 +502,8 @@ extern "C"	{
 		}
 	}
 
-	void nemo_HSetnx(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,const char * value,const size_t vallen, char ** errptr){
-		nemo_SaveError(errptr,nemo->rep->HSetnx(std::string(key,keylen,fieldlen),std::string(field),std::string(value,vallen)));
+	void nemo_HSetnx(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,const char * value,const size_t vallen, int64_t * res, char ** errptr){
+		nemo_SaveError(errptr,nemo->rep->HSetnx(std::string(key,keylen,fieldlen),std::string(field),std::string(value,vallen),res));
 	}
 
 	void nemo_HStrlen(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,int64_t * res_len ,char **errptr){
@@ -632,10 +625,25 @@ extern "C"	{
 	void nemo_SAdd(nemo_t * nemo,const char * key,const size_t keylen, const char * member,const size_t memberlen,int64_t *res,char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->SAdd(std::string(key,keylen),std::string(member,memberlen),res));
 	}	
-
+	void nemo_SMAdd(nemo_t * nemo,const char * key,const size_t keylen,const int num, const char ** member,const size_t * memberlen,int64_t *res,char ** errptr){
+		std::vector<std::string> members(num);
+		for(int i = 0;i<num;i++)
+		{
+			members[i].assign(member[i],memberlen[i]);
+		}			
+		nemo_SaveError(errptr,nemo->rep->SMAdd(std::string(key,keylen),members,res));
+	}	
 	void nemo_SRem(nemo_t * nemo,const char * key,const size_t keylen, const char * member,const size_t memberlen,int64_t *res,char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->SRem(std::string(key,keylen),std::string(member,memberlen),res));
-	}	
+	}
+	void nemo_SMRem(nemo_t * nemo,const char * key,const size_t keylen,const int num, const char ** member,const size_t * memberlen,int64_t *res,char ** errptr){
+		std::vector<std::string> members(num);
+		for(int i = 0;i<num;i++)
+		{
+			members[i].assign(member[i],memberlen[i]);
+		}			
+		nemo_SaveError(errptr,nemo->rep->SMRem(std::string(key,keylen),members,res));
+	}
 	void nemo_SCard(nemo_t * nemo,const char * key,const size_t keylen,int64_t * sum, char ** errptr ){
 		nemo_SaveError(errptr,nemo->rep->SCard(std::string(key,keylen),sum)) ;
 	}
@@ -797,6 +805,15 @@ extern "C"	{
 	void nemo_ZAdd(nemo_t * nemo,const char * key, const size_t keylen, const double score, const char * member,const size_t memlen,int64_t *res,char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->ZAdd(std::string(key,keylen),score,std::string(member,memlen),res));
 	}
+	void nemo_ZMAdd(nemo_t * nemo,const char * key, const size_t keylen, const int num, const double *score, const char ** member,const size_t *memlen,int64_t *res,char ** errptr){
+		std::vector<SM> sms(num);
+		for(int i=0;i<num;i++)
+		{
+			sms[i].member.assign(member[i],memlen[i]);
+			sms[i].score = score[i];
+		}
+		nemo_SaveError(errptr,nemo->rep->ZMAdd(std::string(key,keylen),sms,res));
+	}
 	void nemo_ZCard(nemo_t * nemo,const char * key,const size_t keylen,int64_t * sum, char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->ZCard(std::string(key,keylen),sum));
 	}
@@ -887,6 +904,14 @@ extern "C"	{
 	void nemo_ZRem(nemo_t * nemo,const char * key,const size_t keylen, const char * member,const size_t memlen,int64_t *res,char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->ZRem(std::string(key,keylen),std::string(member,memlen),res));
 	}
+	void nemo_ZMRem(nemo_t * nemo,const char * key,const size_t keylen,const int num, const char ** member,const size_t * memlen,int64_t *res,char ** errptr){
+		std::vector<std::string> members(num);
+		for(int i = 0;i<num;i++)
+		{
+			members[i].assign(member[i],memlen[i]);
+		}		
+		nemo_SaveError(errptr,nemo->rep->ZMRem(std::string(key,keylen),members,res));
+	}	
 	void nemo_ZRank(nemo_t * nemo,const char * key,const size_t keylen, const char * member,const size_t memlen,int64_t *rank,char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->ZRank(std::string(key,keylen),std::string(member,memlen),rank));
 	}

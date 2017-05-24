@@ -30,13 +30,11 @@ int main() {
   std::vector<std::string> fields(0);   
   fields.push_back("field1");
   fields.push_back("field2");
-  fields.push_back("field3");  
-  std::vector<Status> ss(0);
-  s = n->HMDel("HMDel",fields,ss);
+  fields.push_back("field3");
+  int64_t HMDel_res = 0;
+  s = n->HMDel("HMDel",fields,&HMDel_res);
   assert(s.ok());
-  assert(ss[0].ok());
-  assert(ss[1].ok());
-  assert(ss[2].IsNotFound());
+  assert(HMDel_res = 2);
   std::cout <<"HMDel OK"<< std::endl;
 
   s = n->HSet("Key", "field1", "val1", &HSetRes);

@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -DROCKSDB_PLATFORM_POSIX -DROCKSDB_LIB_IO_POSIX  -DOS_LINUX -Wall -Wno-format -DDEBUG -g -O0 -std=c++11 -D__XDEBUG__
 
-OBJECT = main test_bgsave zset test_server hash kv_test ttl bench_hash list_lock simple_test sst_test volume_iterator
+OBJECT = main test_bgsave zset test_server hash kv_test ttl bench_hash list_lock simple_test sst_test volume_iterator set_test zset_test
 
 LIB_PATH = -L../output/lib/
 
@@ -19,7 +19,7 @@ INCLUDE_PATH = -I../output/include/ \
 							 -I../3rdparty/nemo-rocksdb/rocksdb/ \
 							 -I../3rdparty/nemo-rocksdb/rocksdb/include
 
-OBJS = main.o test_bgsave.o zset.o test_server.o test_mset.o hash.o hash_test.o kv_test.o zset_test.o set_test.o list_test.o ttl.o bench_hash.o list_lock.o simple_test.o sst_test.o volume_iterator.o
+OBJS = main.o test_bgsave.o zset.o test_server.o test_mset.o hash.o hash_test.o kv_test.o zset_test.o set_test.o list_test.o ttl.o bench_hash.o list_lock.o simple_test.o sst_test.o volume_iterator.o set_test.o zset_test.o
 
 .PHONY: all clean
 
@@ -27,6 +27,12 @@ all: $(OBJECT)
 	@echo "Success, go, go, go..."
 
 main: main.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
+
+set_test: set_test.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
+
+zset_test: zset_test.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
 
 sst_test: sst_test.o

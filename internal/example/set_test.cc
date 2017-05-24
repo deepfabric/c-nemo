@@ -15,7 +15,7 @@ int main()
     nemo::Options options;
     options.target_file_size_base = 20 * 1024 * 1024;
 
-    Nemo *n = new Nemo("./tmp/", options); 
+    Nemo *n = new Nemo("/tmp/set_test", options); 
     Status s;
 
     std::string res;
@@ -25,7 +25,6 @@ int main()
     std::vector<KVS> kvss;
     std::vector<SM> sms;
     std::vector<std::string> values;
-    int64_t za_res;
 
     /*
      ************************************************* Set **************************************************
@@ -51,9 +50,32 @@ int main()
     int64_t SCard_res = 0;
     n->SCard("setKey",&SCard_res);
     log_info("SCard with existed key return: %ld", SCard_res);
-    n->SCard("non-exist",&SCard_res)
+    n->SCard("non-exist",&SCard_res);
     log_info("SCard with non-existe key return: %ld", SCard_res);
     log_info("");
+
+    //SMAdd SMRem
+    log_info("======Test SMAdd======");
+    std::vector<std::string> members(3);
+    int64_t SMAdd_res = 0;
+    members[0] = "member1";
+    members[1] = "SAddMember";
+    members[2] = "member2";    
+    s = n->SMAdd("setKey",members,&SMAdd_res);
+    assert(s.ok());
+    assert(SMAdd_res = 2);
+    log_info("======Test SMAdd OK=====");
+    log_info("======Test SMRem======");
+    int64_t SMRem_res = 0;
+    members[0] = "member2";
+    members[1] = "SAdd-non-Filed";
+    members[2] = "SAddMember";
+    s = n->SMRem("setKey",members,&SMRem_res);
+    assert(s.ok());
+    assert(SMRem_res==2);
+    n->SCard("setKey",&SCard_res);
+    assert(SCard_res==1);
+    log_info("======Test SMRem OK=====");
 
     /*
      *  Test SScan
@@ -384,10 +406,10 @@ int main()
 
     int64_t e_ret;
     log_info("======Test SExpire======");
-    s = n->SExpire("tSetKey", 7, &e_ret);
+    s = n->Expire("tSetKey", 7, &e_ret);
     log_info("Test SExpire with key=tSetKey in 7s, return %s", s.ToString().c_str());
     log_info("  ======After sexpire SCard======");
-    n->SCard("tSetKey",&SCard_res)
+    n->SCard("tSetKey",&SCard_res);
     log_info("  Test SCard, return card is %ld", SCard_res);
     log_info("");
 
@@ -399,7 +421,7 @@ int main()
         n->SIsMember("tSetKey", "field11",&ret);
         log_info("          after %ds, SIsMember return %d, [true|false]", (i+1)*3, ret);
         if (ret) {
-            s = n->STTL("tSetKey", &ttl);
+            s = n->TTL("tSetKey", &ttl);
             log_info("          new STTL return %s, ttl is %ld\n", s.ToString().c_str(), ttl);
         }
     }
@@ -420,7 +442,7 @@ int main()
       log_info("");
 
       int64_t del_ret;
-      s = n->SDelKey("zr", &del_ret);
+      s = n->Del("zr", &del_ret);
       log_info("======SDelKey  return %s", s.ToString().c_str());
 
       log_info("======Test SDelKey SMembers after======");
@@ -440,28 +462,27 @@ int main()
     //s = n->SAdd("setKey", "member1", &sadd_res);
 
     std::time_t t = std::time(0);
-    s = n->SExpireat("tSetKey", t + 8, &e_ret);
+    s = n->Expireat("tSetKey", t + 8, &e_ret);
     log_info("Test Expireat with key=tSetKey at timestamp=%ld in 8s, return %s", (t+8), s.ToString().c_str());
 
     for (int i = 0; i < 3; i++) {
         sleep(3);
-        bool ret;
-        n->SIsMember("tSetKey", "field12");
-        log_info("          after %ds, SIsMember return %d, [true|false]", (i+1)*3, ret);
-        if (ret) {
-            s = n->STTL("tSetKey", &ttl);
+        n->SIsMember("tSetKey", "field12",&isMemeber);
+        log_info("          after %ds, SIsMember return %d, [true|false]", (i+1)*3, isMemeber);
+        if (isMemeber) {
+            s = n->TTL("tSetKey", &ttl);
             log_info("          new STTL return %s, ttl is %ld\n", s.ToString().c_str(), ttl);
         }
     }
     log_info("");
 
     s = n->SAdd("tSetKey", "field12", &sadd_res);
-    s = n->SExpireat("tSetKey", 8, &e_ret);
+    s = n->Expireat("tSetKey", 8, &e_ret);
     log_info("Test ZExpireat with key=tSetKey at a passed timestamp=8, return %s", s.ToString().c_str());
     n->SIsMember("tSetKey", "field12",&isMemeber);
     log_info("      Get a invalid key return %d, [1|0] expect false", isMemeber);
     if (s.IsNotFound()) {
-        n->STTL("tSetKey", &ttl);
+        n->TTL("tSetKey", &ttl);
         log_info("          NotFound key's TTL is %ld\n", ttl);
     }
     log_info("");
@@ -471,20 +492,20 @@ int main()
      */
     log_info("======Test SPersist======");
     s = n->SAdd("tSetKey", "field12", &sadd_res);
-    s = n->SExpire("tSetKey", 7, &e_ret);
+    s = n->Expire("tSetKey", 7, &e_ret);
     log_info("Test SPersist with key=tSetKey in 7s, return %s", s.ToString().c_str());
 
     for (int i = 0; i < 3; i++) {
         sleep(3);
         if (i == 1) {
-            s = n->SPersist("tSetKey", &e_ret);
+            s = n->Persist("tSetKey", &e_ret);
             log_info(" Test SPersist return %s", s.ToString().c_str());
         }
         bool ret;
         n->SIsMember("tSetKey", "field12",&ret);
         log_info("          after %ds, SIsMember return %d, [true|false]", (i+1)*3, ret);
         if (ret) {
-            s = n->STTL("tSetKey", &ttl);
+            s = n->TTL("tSetKey", &ttl);
             log_info("          new STTL return %s, ttl is %ld\n", s.ToString().c_str(), ttl);
         }
     }
