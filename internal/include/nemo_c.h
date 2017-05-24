@@ -357,8 +357,7 @@ extern nemo_DBNemo_t * nemo_GetRaftHandle(nemo_t * nemo);
 extern nemo_WriteBatch_t * createWriteBatch();
 extern void rocksdb_WriteBatch_Put(nemo_WriteBatch_t * nwb, const char * key, const size_t keylen, 
 												 const char * value ,const size_t vallen );
-extern void rocksdb_WriteBatch_Del(nemo_WriteBatch_t * nwb,  const char * key, const size_t keylen, 
-												  const char * value ,const size_t vallen );
+extern void rocksdb_WriteBatch_Del(nemo_WriteBatch_t * nwb,  const char * key, const size_t keylen);
 extern void rocksdb_BatchWrite(nemo_t * nemo,nemo_DBNemo_t * db,nemo_WriteBatch_t * nwb,char ** errptr);                                                  
 extern void nemo_PutWithHandle(nemo_t * nemo,nemo_DBNemo_t * db, 
 								const char * key, const size_t keylen, 

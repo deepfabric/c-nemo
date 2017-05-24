@@ -1119,14 +1119,11 @@ extern "C"	{
 		std::string valstr(value,vallen);
 		nwb->rep.Put(keystr,valstr);
 	}
-	void rocksdb_WriteBatch_Del(nemo_WriteBatch_t * nwb,  const char * key, const size_t keylen, 
-												  const char * value ,const size_t vallen )
+	void rocksdb_WriteBatch_Del(nemo_WriteBatch_t * nwb,  const char * key, const size_t keylen)
 	{
 		std::string keystr(key,keylen);
-		std::string valstr(value,vallen);
-		nwb->rep.Put(keystr,valstr);
+		nwb->rep.Delete(keystr);
 	}
-
 	void rocksdb_BatchWrite(nemo_t * nemo,nemo_DBNemo_t * db,nemo_WriteBatch_t * nwb,char ** errptr)
 	{
 	 	nemo_SaveError(errptr,nemo->rep->BatchWrite(db->rep,&(nwb->rep)));
