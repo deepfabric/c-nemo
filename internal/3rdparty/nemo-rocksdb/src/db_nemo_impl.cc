@@ -42,7 +42,7 @@ DBNemoImpl::~DBNemoImpl() {
 
 Status DBNemo::Open(Options& options, const std::string& dbname,
                        DBNemo** dbptr, char meta_prefix, bool read_only) {
-
+  options.disable_auto_compactions = true;
   DBOptions db_options(options);
   ColumnFamilyOptions cf_options(options);
   std::vector<ColumnFamilyDescriptor> column_families;
@@ -89,6 +89,7 @@ Status DBNemo::Open(
     *dbptr = nullptr;
   }
   g_compaction_filter_factory->SetDBAndMP(db, meta_prefix);
+  db->EnableAutoCompaction(*handles);
   return st;
 }
 
