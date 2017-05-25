@@ -323,9 +323,24 @@ extern "C"	{
 	}
 	void nemo_Getrange(nemo_t * nemo,const char * key, const size_t keylen, const int64_t start,const int64_t end, char ** substr,size_t * substr_len, char ** errptr){
 		std::string substr_cpp;
-		nemo_SaveError(errptr,nemo->rep->Getrange(std::string(key,keylen),start,end,substr_cpp));
-		*substr = CopyString(substr_cpp);
-		*substr_len = substr_cpp.size();
+		Status s = nemo->rep->Getrange(std::string(key,keylen),start,end,substr_cpp);
+		if(s.ok())
+		{
+			*errptr = nullptr;
+			*substr = CopyString(substr_cpp);
+			*substr_len = substr_cpp.size();
+		}
+		else if (s.IsNotFound())
+		{
+			*errptr = nullptr;
+			*substr = nullptr;
+			*substr_len = 0;
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}		
+
 	}
 	void nemo_Setrange(nemo_t * nemo,const char * key, const size_t keylen, const int64_t offset,const char * value, const size_t vallen, int64_t * len ,char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->Setrange(std::string(key,keylen),offset,std::string(value,vallen),len));
