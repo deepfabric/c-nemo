@@ -304,7 +304,7 @@ extern void nemo_ZRank(nemo_t * nemo,const char * key,const size_t keylen, const
 
 extern void nemo_ZRevrank(nemo_t * nemo,const char * key, const size_t keylen, const char * member,const size_t memlen,int64_t *rank,char ** errptr);
 
-extern void nemo_ZScore(nemo_t * nemo,const char * key, const size_t keylen, const char * member,const size_t memlen, double * score,char ** errptr);
+extern void nemo_ZScore(nemo_t * nemo,const char * key, const size_t keylen, const char * member,const size_t memlen, double * score, int64_t * res ,char ** errptr);
 
 extern void nemo_ZRangebylex(nemo_t * nemo,const char * key,const size_t keylen,const char * min,const size_t minlen,const char * max, const size_t maxlen, \
 				int * num,char *** member_list, size_t ** member_list_strlen,char ** errptr);

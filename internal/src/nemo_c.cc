@@ -456,9 +456,24 @@ extern "C"	{
 	}
 	void nemo_HGet(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,char ** value, size_t * value_len , char ** errptr){
 		std::string val_str;
-		nemo_SaveError(errptr,nemo->rep->HGet(std::string(key,keylen),std::string(field,fieldlen),&val_str));
-		*value = CopyString(val_str);
-		*value_len = val_str.size();
+		Status s = nemo->rep->HGet(std::string(key,keylen),std::string(field,fieldlen),&val_str);
+		if(s.ok())
+		{
+			*errptr = nullptr;
+			*value = CopyString(val_str);
+			*value_len = val_str.size();
+		}
+		else if (s.IsNotFound())
+		{
+			*errptr = nullptr;
+			*value  = nullptr ;
+			*value_len  = 0;			
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}
+
 	}
 	void nemo_HDel(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen, char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->HDel(std::string(key,keylen),std::string(field,fieldlen)));
@@ -544,9 +559,19 @@ extern "C"	{
 		nemo_SaveError(errptr,nemo->rep->HMGet(std::string(key,keylen),keys,fvs));
 		for (int i = 0; i < num; ++i)
 		{
-			value_list[i] = CopyString(fvs[i].val);
-			value_list_strlen[i] = fvs[i].val.size(); 
-			errs[i] = strdup(fvs[i].status.ToString().c_str());
+			if(fvs[i].status.ok()){
+				value_list[i] = CopyString(fvs[i].val);
+				value_list_strlen[i] = fvs[i].val.size(); 
+				errs[i] = nullptr;				
+			}
+			else if(fvs[i].status.IsNotFound()){
+				value_list[i] = nullptr;
+				value_list_strlen[i] = 0; 
+				errs[i] = nullptr;					
+			}
+			else{
+				errs[i] = strdup(fvs[i].status.ToString().c_str());
+			}
 		}
 	}
 
@@ -639,7 +664,7 @@ extern "C"	{
 
 	void nemo_LSet(nemo_t * nemo,const char * key,const size_t keylen, const int64_t index, char * val,const size_t vallen,char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->LSet(std::string(key,keylen),index,std::string(val,vallen)));
-	}	
+	}
 	void nemo_LTrim(nemo_t * nemo,const char * key,const size_t keylen, const int64_t begin, const int64_t end,char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->LTrim(std::string(key,keylen),begin,end));
 	}
@@ -651,7 +676,7 @@ extern "C"	{
 		nemo_SaveError(errptr,nemo->rep->RPop(std::string(key,keylen),&val_str));
 		*value = CopyString(val_str);
 		*value_len = val_str.size();
-	}   
+	}
 	void nemo_RPushx(nemo_t * nemo,const char * key,const size_t keylen,const char * value,const size_t vallen, int64_t * llen,char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->RPushx(std::string(key,keylen),std::string(value,vallen),llen));
 	}
@@ -966,8 +991,25 @@ extern "C"	{
 	void nemo_ZRevrank(nemo_t * nemo,const char * key, const size_t keylen, const char * member,const size_t memlen,int64_t *rank,char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->ZRevrank(std::string(key,keylen),std::string(member,memlen),rank));
 	}
-	void nemo_ZScore(nemo_t * nemo,const char * key, const size_t keylen, const char * member,const size_t memlen, double * score,char ** errptr){
-		nemo_SaveError(errptr,nemo->rep->ZScore(std::string(key,keylen),std::string(member,memlen),score));
+	void nemo_ZScore(nemo_t * nemo,const char * key, const size_t keylen, const char * member,const size_t memlen, double * score, int64_t * res, char ** errptr){
+		
+		Status s = nemo->rep->ZScore(std::string(key,keylen),std::string(member,memlen),score);
+
+		if(s.ok())
+		{
+			*errptr = nullptr;
+			*res = 1;
+		}
+		else if (s.IsNotFound())
+		{
+			*errptr = nullptr;
+			*res = 0;		
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}
+
 	}
     void nemo_ZRangebylex(nemo_t * nemo,const char * key,const size_t keylen,const char * min,const size_t minlen,const char * max, const size_t maxlen, \
 				int * num,char *** member_list, size_t ** member_list_strlen,char ** errptr){
