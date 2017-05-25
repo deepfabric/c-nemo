@@ -15,6 +15,8 @@ int main()
     nemo::Options options;
     options.target_file_size_base = 20 * 1024 * 1024;
 
+    system("rm -rf /tmp/zset_test");
+
     Nemo *n = new Nemo("/tmp/zset_test", options); 
     Status s;
 
