@@ -183,9 +183,25 @@ extern "C"	{
 	}
 	void nemo_Get(nemo_t * nemo,const char * key, const size_t keylen, const char ** val,size_t * vallen, char ** errptr){
 		std::string  res_value;
-		nemo_SaveError(errptr,nemo->rep->Get(std::string(key,keylen),&res_value));
-		*val = CopyString(res_value) ;
-		*vallen  = res_value.size();
+		Status s = nemo->rep->Get(std::string(key,keylen),&res_value);
+
+		if(s.ok())
+		{
+			*errptr = nullptr;
+			*val = CopyString(res_value) ;
+			*vallen  = res_value.size();
+		}
+		else if (s.IsNotFound())
+		{
+			*errptr = nullptr;
+			*val = nullptr ;
+			*vallen  = 0;			
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}
+
 	}
 
 	void nemo_MSet(nemo_t * nemo, const int  num,const char ** key,size_t * keylen,const char ** value,size_t * valuelen, char ** errptr){
@@ -212,6 +228,12 @@ extern "C"	{
 				val[i]   = CopyString(kvss[i].val);
 				vallen[i] = kvss[i].val.size();
 				errs[i] = NULL;				
+			}
+			else if(kvss[i].status.IsNotFound())
+			{
+				val[i]   = nullptr;
+				vallen[i] = 0;
+				errs[i] = NULL;					
 			}
 			else {
 				val[i] = NULL;
@@ -815,7 +837,7 @@ extern "C"	{
 						int * res_count,char ** member_list, size_t * member_list_strlen, const int count, char ** errptr){
 		std::vector<std::string> members(count);
 		nemo_SaveError(errptr,nemo->rep->SRandMember(std::string(key,keylen),members,count));
-		*res_count = members.size();	
+		*res_count = members.size();
 		for (int i = 0; i < *res_count; ++i)
 		{
 			member_list[i] = CopyString(members[i]); 
@@ -1147,9 +1169,26 @@ extern "C"	{
 	{
 		std::string keystr(key,keylen);
 		std::string valstr;		
-		nemo_SaveError(errptr,nemo->rep->GetWithHandle(db->rep,keystr,&valstr));
-		*value = CopyString(valstr);
-		*vallen  = valstr.size();		
+		Status s = nemo->rep->GetWithHandle(db->rep,keystr,&valstr);
+
+		if(s.ok())
+		{
+			*errptr = nullptr;
+			*value = CopyString(valstr);
+			*vallen  = valstr.size();	
+		}
+		else if (s.IsNotFound())
+		{
+			*errptr = nullptr;
+			*value = nullptr ;
+			*vallen  = 0;			
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}
+
+	
 	}
 
 	void nemo_DeleteWithHandle(nemo_t * nemo,nemo_DBNemo_t * db, 
