@@ -192,7 +192,7 @@ Status Nemo::LIndex(const std::string &key, const int64_t index, std::string *va
                 return Status::NotFound("not found the key");
             }
             if (index >= meta.len || -index > meta.len ) {
-                return Status::Corruption("index out of range");
+                return Status::NotFound("index out of range");
             }
             if (index >= 0) {
                 if (L2R(key, index, meta.left, &priv, &cur, &next) != 0) {

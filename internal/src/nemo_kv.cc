@@ -961,10 +961,11 @@ Status Nemo::Expire(const std::string &key, const int32_t seconds, int64_t *res)
 
     if (cnt) {
       *res = 1;
-      return Status::OK();
+
     } else {
-      return Status::NotFound("");
+      *res = 0;
     }
+    return Status::OK();    
 }
 
 Status Nemo::TTL(const std::string &key, int64_t *res) {
@@ -1041,7 +1042,8 @@ Status Nemo::Persist(const std::string &key, int64_t *res) {
       }
       return Status::OK();
     } else {
-      return Status::NotFound("");
+      *res = 0;  
+      return Status::OK();
     }
 }
 
@@ -1088,7 +1090,8 @@ Status Nemo::Expireat(const std::string &key, const int32_t timestamp, int64_t *
       *res = 1;
       return Status::OK();
     } else {
-      return Status::NotFound("");
+      *res = 0;        
+      return Status::OK();;
     }
 }
 

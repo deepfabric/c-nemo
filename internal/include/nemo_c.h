@@ -205,7 +205,7 @@ extern void nemo_LPop(nemo_t * nemo,const char * key,const size_t keylen,char **
 extern void nemo_LPushx(nemo_t * nemo,const char * key,const size_t keylen,const char * value, const size_t vallen,int64_t * llen,char ** errptr);
 
 extern void nemo_LRange(nemo_t * nemo,const char * key,const size_t keylen,const int64_t begin,const int64_t end, \
-					size_t * num, int64_t ** index_list,char *** val_list, size_t ** val_list_strlen, char ** errptr);
+					size_t * num, int64_t ** index_list,char *** val_list, size_t ** val_list_strlen, int64_t * res, char ** errptr);
 
 extern void nemo_LSet(nemo_t * nemo,const char * key,const size_t keylen, const int64_t index, char * val,const size_t vallen,char ** errptr);
 
@@ -217,7 +217,7 @@ extern 	void nemo_RPop(nemo_t * nemo,const char * key,const size_t keylen,char *
 
 extern 	void nemo_RPushx(nemo_t * nemo,const char * key,const size_t keylen,const char * value,const size_t vallen, int64_t * llen,char ** errptr);
 
-extern 	void nemo_RPopLPush(nemo_t * nemo,const char * src,const size_t srclen,char * dest,const size_t destlen,char **val, size_t * val_len, char ** errptr);
+extern 	void nemo_RPopLPush(nemo_t * nemo,const char * src,const size_t srclen,char * dest,const size_t destlen,char **val, size_t * val_len, int64_t * res, char ** errptr);
 
 extern	void nemo_LInsert(nemo_t * nemo,const char * key,const size_t keylen, int pos,\
 								    const char * pivot,const size_t pivotlen,\
@@ -261,10 +261,10 @@ extern	void nemo_SDiff(nemo_t * nemo, const int num, const char ** key_list,cons
 		
 extern 	void nemo_SIsMember(nemo_t * nemo,const char * key,const size_t keylen, const char * member,const size_t memlen,bool * isMember,char ** errptr);
 
-extern 	void nemo_SPop(nemo_t * nemo,const char * key,const size_t keylen,  char ** member, size_t * len,  char ** errptr);
+extern 	void nemo_SPop(nemo_t * nemo,const char * key,const size_t keylen,  char ** member, size_t * len, int64_t * res, char ** errptr);
 
 extern 	void nemo_SRandomMember(nemo_t * nemo,  const char * key,const size_t keylen,		\
-						int * res_count,char ** member_list, size_t * member_list_strlen, const int count, char ** errptr);
+						int * res_count,char ** member_list, size_t * member_list_strlen, const int count, int64_t * res, char ** errptr);
 
 extern  void nemo_SMove(nemo_t * nemo,const char * source,const size_t slen,const char * dest,const size_t destlen,\
 						const char * member,const size_t memlen,int64_t * res,char ** errptr);

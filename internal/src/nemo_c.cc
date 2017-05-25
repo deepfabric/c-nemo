@@ -641,30 +641,89 @@ extern "C"	{
 	// ==============List=====================
 	void nemo_LIndex(nemo_t * nemo,const char * key, const size_t keylen, const int64_t index, char ** val, size_t * val_len, char ** errptr){
 		std::string val_str;
-		nemo_SaveError(errptr,nemo->rep->LIndex(std::string(key,keylen),index,&val_str));
-		*val = CopyString(val_str);
-		*val_len = val_str.size(); 
+		Status s = nemo->rep->LIndex(std::string(key,keylen),index,&val_str);
+		if(s.ok())
+		{
+			*errptr = nullptr;
+			*val = CopyString(val_str);
+			*val_len = val_str.size();
+		}
+		else if (s.IsNotFound()){
+			*errptr = nullptr;
+			*val = nullptr;
+			*val_len = 0; 
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}
 	}
 	void nemo_LLen(nemo_t * nemo,const char * key,const size_t keylen, int64_t * llen,char ** errptr){
 		std::string val_str;
-		nemo_SaveError(errptr,nemo->rep->LLen(std::string(key,keylen),llen));
+		Status s = nemo->rep->LLen(std::string(key,keylen),llen);
+		if(s.ok()|| s.IsNotFound())
+		{
+			*errptr = nullptr;
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}
 	}
 	void nemo_LPush(nemo_t * nemo,const char * key,const size_t keylen,const char * value,const size_t vallen, int64_t * llen,char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->LPush(std::string(key,keylen),std::string(value,vallen),llen));
 	}
 	void nemo_LPop(nemo_t * nemo,const char * key,const size_t keylen,char ** value, size_t * value_len, char ** errptr){
 		std::string val_str;
-		nemo_SaveError(errptr,nemo->rep->LPop(std::string(key,keylen),&val_str));
-		*value = CopyString(val_str);
-		*value_len = val_str.size();
+		Status s = nemo->rep->LPop(std::string(key,keylen),&val_str);
+		if(s.ok())
+		{
+			*errptr = nullptr;
+			*value = CopyString(val_str);
+			*value_len = val_str.size();
+		}
+		else if(s.IsNotFound())
+		{
+			*errptr = nullptr;
+			*value = nullptr;
+			*value_len = 0;			
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}
 	}    	
 	void nemo_LPushx(nemo_t * nemo,const char * key,const size_t keylen,const char * value, const size_t vallen,int64_t * llen,char ** errptr){
-		nemo_SaveError(errptr,nemo->rep->LPushx(std::string(key,keylen),std::string(value,vallen),llen));
+		Status s = nemo->rep->LPushx(std::string(key,keylen),std::string(value,vallen),llen);
+		if(s.ok()|| s.IsNotFound())
+		{
+			*errptr = nullptr;
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}
 	}
 	void nemo_LRange(nemo_t * nemo,const char * key,const size_t keylen,const int64_t begin,const int64_t end, \
-					size_t * num, int64_t ** index_list,char *** val_list, size_t ** val_list_strlen, char ** errptr){
+					size_t * num, int64_t ** index_list,char *** val_list, size_t ** val_list_strlen, int64_t * res, char ** errptr){
 		std::vector<IV> ivs;
-		nemo_SaveError(errptr,nemo->rep->LRange(std::string(key,keylen),begin,end,ivs));
+		Status s = nemo->rep->LRange(std::string(key,keylen),begin,end,ivs);
+
+		if(s.ok())
+		{
+			*errptr = nullptr;
+			*res = 1;
+		}
+		else if (s.IsNotFound())
+		{
+			*errptr = nullptr;
+			*res = 0;		
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}		
+		
 		*num = ivs.size();
 		if(*num>0){
 			*index_list = new int64_t [*num] ;
@@ -689,33 +748,99 @@ extern "C"	{
 		nemo_SaveError(errptr,nemo->rep->LSet(std::string(key,keylen),index,std::string(val,vallen)));
 	}
 	void nemo_LTrim(nemo_t * nemo,const char * key,const size_t keylen, const int64_t begin, const int64_t end,char ** errptr){
-		nemo_SaveError(errptr,nemo->rep->LTrim(std::string(key,keylen),begin,end));
+		Status s = nemo->rep->LTrim(std::string(key,keylen),begin,end);
+		if(s.ok()|| s.IsNotFound())
+		{
+			*errptr = nullptr;
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}		
 	}
 	void nemo_RPush(nemo_t * nemo,const char * key,const size_t keylen,const char * value,const size_t vallen, int64_t * llen,char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->RPush(std::string(key,keylen),std::string(value,vallen),llen));
 	}
 	void nemo_RPop(nemo_t * nemo,const char * key,const size_t keylen,char ** value, size_t * value_len, char ** errptr){
 		std::string val_str;
-		nemo_SaveError(errptr,nemo->rep->RPop(std::string(key,keylen),&val_str));
-		*value = CopyString(val_str);
-		*value_len = val_str.size();
+		Status s = nemo->rep->RPop(std::string(key,keylen),&val_str);
+
+		if(s.ok())
+		{
+			*errptr = nullptr;
+			*value = CopyString(val_str);
+			*value_len = val_str.size();
+		}
+		else if(s.IsNotFound())
+		{
+			*errptr = nullptr;
+			*value = nullptr;
+			*value_len = 0;			
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}
+
 	}
 	void nemo_RPushx(nemo_t * nemo,const char * key,const size_t keylen,const char * value,const size_t vallen, int64_t * llen,char ** errptr){
-		nemo_SaveError(errptr,nemo->rep->RPushx(std::string(key,keylen),std::string(value,vallen),llen));
+		Status s = nemo->rep->RPushx(std::string(key,keylen),std::string(value,vallen),llen);
+		if(s.ok()|| s.IsNotFound())
+		{
+			*errptr = nullptr;
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}
 	}
-	void nemo_RPopLPush(nemo_t * nemo,const char * src,const size_t srclen,char * dest,const size_t destlen,char **val, size_t * val_len, char ** errptr){
+	void nemo_RPopLPush(nemo_t * nemo,const char * src,const size_t srclen,char * dest,const size_t destlen,char **val, size_t * val_len, int64_t * res, char ** errptr){
 		std::string val_str;
-		nemo_SaveError(errptr,nemo->rep->RPopLPush(std::string(src,srclen),std::string(dest,destlen),val_str));
-		*val = CopyString(val_str);
-		*val_len = val_str.size();
+		Status s = nemo->rep->RPopLPush(std::string(src,srclen),std::string(dest,destlen),val_str);
+
+		if(s.ok())
+		{
+			*errptr = nullptr;
+			*res = 1;
+			*val = CopyString(val_str);
+			*val_len = val_str.size();
+		}
+		else if (s.IsNotFound())
+		{
+			*errptr = nullptr;
+			*res = 0;
+			*val = nullptr;
+			*val_len = 0;			
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}
+
 	}   
 	void nemo_LInsert(nemo_t * nemo,const char * key,const size_t keylen, int pos,\
 								    const char * pivot,const size_t pivotlen,\
 									const char * val,const size_t vallen,int64_t *llen,char ** errptr){
-		nemo_SaveError(errptr,nemo->rep->LInsert(std::string(key,keylen),static_cast<Position>(pos),std::string(pivot,pivotlen),std::string(val,vallen),llen));
+		Status s = nemo->rep->LInsert(std::string(key,keylen),static_cast<Position>(pos),std::string(pivot,pivotlen),std::string(val,vallen),llen);
+		if(s.ok()|| s.IsNotFound())
+		{
+			*errptr = nullptr;
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}		
 	}
 	void nemo_LRem(nemo_t * nemo,const char * key,const size_t keylen, const int64_t count, const char * val, const size_t vallen,int64_t * rem_count,char ** errptr){
-		nemo_SaveError(errptr,nemo->rep->LRem(std::string(key,keylen),count,std::string(val,vallen),rem_count));
+		Status s = nemo->rep->LRem(std::string(key,keylen),count,std::string(val,vallen),rem_count);
+		if(s.ok()|| s.IsNotFound())
+		{
+			*errptr = nullptr;
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}
 	}
 	// ==============Set=====================
 	void nemo_SAdd(nemo_t * nemo,const char * key,const size_t keylen, const char * member,const size_t memberlen,int64_t *res,char ** errptr){
@@ -753,7 +878,7 @@ extern "C"	{
 	}
 	void nemo_SMembers(nemo_t * nemo,const char * key,const size_t keylen,char *** member_list, size_t ** member_list_strlen,int * count, char ** errptr){
 		std::vector<std::string> vals;
-		nemo_SaveError(errptr,nemo->rep->HKeys(std::string(key,keylen),vals));
+		nemo_SaveError(errptr,nemo->rep->SMembers(std::string(key,keylen),vals));
 		*count = vals.size();
 		if(*count>0){
 			*member_list = new char * [*count];
@@ -879,20 +1004,59 @@ extern "C"	{
 
 	}	
 	void nemo_SIsMember(nemo_t * nemo,const char * key,const size_t keylen, const char * member,const size_t memlen,bool * isMember,char ** errptr){
-		nemo_SaveError(errptr,nemo->rep->SIsMember(std::string(key,keylen),std::string(member,memlen),isMember));
+		Status s = nemo->rep->SIsMember(std::string(key,keylen),std::string(member,memlen),isMember);
+		if(s.ok()|| s.IsNotFound())
+		{
+			*errptr = nullptr;
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}			
 	}
 
-	void nemo_SPop(nemo_t * nemo,const char * key,const size_t keylen,  char ** member, size_t * len,  char ** errptr){
+	void nemo_SPop(nemo_t * nemo,const char * key,const size_t keylen,  char ** member, size_t * len, int64_t * res, char ** errptr){
 		std::string member_str;
-		nemo_SaveError(errptr,nemo->rep->SPop(std::string(key,keylen),member_str));
-		*member = CopyString(member_str);
-		*len = member_str.size();
+		Status s = nemo->rep->SPop(std::string(key,keylen),member_str);
+
+		if(s.ok())
+		{
+			*errptr = nullptr;
+			*res = 1;
+			*member = CopyString(member_str);
+			*len = member_str.size();			
+		}
+		else if (s.IsNotFound())
+		{
+			*errptr = nullptr;
+			*res = 0;
+			*member = nullptr;
+			*len = 0;			
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}		
 	}
 
 	void nemo_SRandomMember(nemo_t * nemo,  const char * key,const size_t keylen,		\
-						int * res_count,char ** member_list, size_t * member_list_strlen, const int count, char ** errptr){
+						int * res_count,char ** member_list, size_t * member_list_strlen, const int count, int64_t * res, char ** errptr){
 		std::vector<std::string> members(count);
-		nemo_SaveError(errptr,nemo->rep->SRandMember(std::string(key,keylen),members,count));
+		Status s = nemo->rep->SRandMember(std::string(key,keylen),members,count);
+		if(s.ok())
+		{
+			*errptr = nullptr;
+			*res = 1;
+		}
+		else if (s.IsNotFound())
+		{
+			*errptr = nullptr;
+			*res = 0;
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}		
 		*res_count = members.size();
 		for (int i = 0; i < *res_count; ++i)
 		{
@@ -902,7 +1066,15 @@ extern "C"	{
 	}
     void nemo_SMove(nemo_t * nemo,const char * source,const size_t slen,const char * dest,const size_t destlen,\
 						const char * member,const size_t memlen,int64_t * res,char ** errptr){
-    	nemo_SaveError(errptr,nemo->rep->SMove(std::string(source,slen),std::string(dest,destlen),std::string(member,memlen),res));
+    	Status s = nemo->rep->SMove(std::string(source,slen),std::string(dest,destlen),std::string(member,memlen),res);
+		if(s.ok()|| s.IsNotFound())
+		{
+			*errptr = nullptr;
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}
     }
 
     // ==============ZSet=====================
@@ -927,7 +1099,7 @@ extern "C"	{
 		else
 		{
 			*errptr = strdup(s.ToString().c_str());
-		}			
+		}
 	}
     void nemo_ZCount(nemo_t * nemo,const char * key,const size_t keylen,const double begin,const double end ,int64_t* sum, bool is_lo,bool is_ro,char ** errptr){
     	nemo_SaveError(errptr,nemo->rep->ZCount(std::string(key,keylen),begin,end,sum,is_lo,is_ro));
@@ -1025,10 +1197,36 @@ extern "C"	{
 		nemo_SaveError(errptr,nemo->rep->ZMRem(std::string(key,keylen),members,res));
 	}	
 	void nemo_ZRank(nemo_t * nemo,const char * key,const size_t keylen, const char * member,const size_t memlen,int64_t *rank,char ** errptr){
-		nemo_SaveError(errptr,nemo->rep->ZRank(std::string(key,keylen),std::string(member,memlen),rank));
+		Status s = nemo->rep->ZRank(std::string(key,keylen),std::string(member,memlen),rank);
+		if(s.ok())
+		{
+			*errptr = nullptr;
+		}
+		else if (s.IsNotFound())
+		{
+			*errptr = nullptr;
+			*rank = -1;		
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}		
 	}
 	void nemo_ZRevrank(nemo_t * nemo,const char * key, const size_t keylen, const char * member,const size_t memlen,int64_t *rank,char ** errptr){
-		nemo_SaveError(errptr,nemo->rep->ZRevrank(std::string(key,keylen),std::string(member,memlen),rank));
+		Status s = nemo->rep->ZRevrank(std::string(key,keylen),std::string(member,memlen),rank);
+		if(s.ok())
+		{
+			*errptr = nullptr;
+		}
+		else if (s.IsNotFound())
+		{
+			*errptr = nullptr;
+			*rank = -1;		
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}			
 	}
 	void nemo_ZScore(nemo_t * nemo,const char * key, const size_t keylen, const char * member,const size_t memlen, double * score, int64_t * res, char ** errptr){
 		
@@ -1055,20 +1253,20 @@ extern "C"	{
     	std::vector<std::string> members;
     	nemo_SaveError(errptr,nemo->rep->ZRangebylex(std::string(key,keylen),std::string(min,minlen),std::string(max,maxlen),members));
     	*num = members.size();
-	if(*num>0){
-    		*member_list = new char * [*num];
-	    	*member_list_strlen = new size_t [*num];
-    		for(int i = 0 ;i< *num;i++)
-    		{
-    			(*member_list)[i] = CopyString( members[i]);
-	    		(*member_list_strlen)[i] = members[i].size();
-    		}
-	}
-	else
-	{
-		*member_list = nullptr;
-		*member_list_strlen = nullptr;
-	}
+		if(*num>0){
+				*member_list = new char * [*num];
+				*member_list_strlen = new size_t [*num];
+				for(int i = 0 ;i< *num;i++)
+				{
+					(*member_list)[i] = CopyString( members[i]);
+					(*member_list_strlen)[i] = members[i].size();
+				}
+		}
+		else
+		{
+			*member_list = nullptr;
+			*member_list_strlen = nullptr;
+		}
 	
     }
     void nemo_ZLexcount(nemo_t * nemo,const char * key,const size_t keylen,const char * min,const size_t minlen,const char * max,const size_t maxlen,int64_t * count,char ** errptr){

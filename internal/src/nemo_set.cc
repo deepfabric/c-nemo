@@ -339,7 +339,7 @@ SIterator* Nemo::SScan(const std::string &key, uint64_t limit, bool use_snapshot
 
 Status Nemo::SMembers(const std::string &key, std::vector<std::string> &members) {
     SIterator *iter = SScan(key, -1, true);
-
+    members.clear();
     for (; iter->Valid(); iter->Next()) {
         members.push_back(iter->member());
     }
