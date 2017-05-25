@@ -85,11 +85,11 @@ Status DBNemo::Open(
   }
   if (st.ok()) {
     *dbptr = new DBNemoImpl(db, meta_prefix);
+    g_compaction_filter_factory->SetDBAndMP(db, meta_prefix);
+    db->EnableAutoCompaction(*handles);
   } else {
     *dbptr = nullptr;
   }
-  g_compaction_filter_factory->SetDBAndMP(db, meta_prefix);
-  db->EnableAutoCompaction(*handles);
   return st;
 }
 
