@@ -307,9 +307,9 @@ extern void nemo_ZRevrank(nemo_t * nemo,const char * key, const size_t keylen, c
 extern void nemo_ZScore(nemo_t * nemo,const char * key, const size_t keylen, const char * member,const size_t memlen, double * score, int64_t * res ,char ** errptr);
 
 extern void nemo_ZRangebylex(nemo_t * nemo,const char * key,const size_t keylen,const char * min,const size_t minlen,const char * max, const size_t maxlen, \
-				int * num,char *** member_list, size_t ** member_list_strlen,char ** errptr);
+				int * num,char *** member_list, size_t ** member_list_strlen, bool is_lo, bool is_ro, char ** errptr);
 
-extern void nemo_ZLexcount(nemo_t * nemo,const char * key,const size_t keylen,const char * min,const size_t minlen,const char * max,const size_t maxlen,int64_t * count,char ** errptr);
+extern void nemo_ZLexcount(nemo_t * nemo,const char * key,const size_t keylen,const char * min,const size_t minlen,const char * max,const size_t maxlen,int64_t * count, bool is_lo, bool is_ro, char ** errptr);
 
 extern void nemo_ZRemrangebylex(nemo_t * nemo,const char * key,const size_t keylen,const char * min,const size_t minlen,const char * max,const size_t maxlen,bool is_lo,bool is_ro,int64_t * count,char ** errptr);
 

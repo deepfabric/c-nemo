@@ -1119,7 +1119,7 @@ int main()
      */
     log_info("======Test ZCount======");
     int64_t Zcount_res = 0;
-    n->ZCount("tZAddKey", -1, 3, &Zcount_res);
+    n->ZCount("tZAddKey", 1.1, 3.1, &Zcount_res);
     log_info("Test ZCount, return %ld", Zcount_res); 
     log_info("");
 
@@ -1164,6 +1164,26 @@ int main()
         log_info("Test ZRangebyscore score: %lf, member: %s", it_sm->score, it_sm->member.c_str());
     }
 
+    std::vector<std::string> members;
+    s = n->ZRangebylex("zk1","m1","m3", members,true,true);
+    assert(s.ok());
+    log_info("ZRangebylex lo ro is true:");
+    for (std::string strRangebylex:members) {
+        log_info("Test ZRangebylex member: %s", strRangebylex.c_str());
+    }
+    s = n->ZRangebylex("zk1","m1","m3", members,false,false);
+    assert(s.ok());    
+    log_info("ZRangebylex lo ro is false:");
+    for (std::string strRangebylex:members) {
+        log_info("Test ZRangebylex member: %s", strRangebylex.c_str());
+    }
+    int64_t zlexcount = 0;
+    s = n->ZLexcount("zk1","m1","m3", &zlexcount,false,false);
+    assert(s.ok());
+    assert(zlexcount == 3);
+    s = n->ZLexcount("zk1","m1","m3", &zlexcount,true,true);
+    assert(s.ok());
+    assert(zlexcount == 1);
     /*
      *  Test ZScore
      */

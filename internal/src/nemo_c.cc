@@ -1275,9 +1275,9 @@ extern "C"	{
 
 	}
     void nemo_ZRangebylex(nemo_t * nemo,const char * key,const size_t keylen,const char * min,const size_t minlen,const char * max, const size_t maxlen, \
-				int * num,char *** member_list, size_t ** member_list_strlen,char ** errptr){
+				int * num,char *** member_list, size_t ** member_list_strlen, bool is_lo, bool is_ro,char ** errptr){
     	std::vector<std::string> members;
-    	nemo_SaveError(errptr,nemo->rep->ZRangebylex(std::string(key,keylen),std::string(min,minlen),std::string(max,maxlen),members));
+    	nemo_SaveError(errptr,nemo->rep->ZRangebylex(std::string(key,keylen),std::string(min,minlen),std::string(max,maxlen),members,is_lo,is_ro));
     	*num = members.size();
 		if(*num>0){
 				*member_list = new char * [*num];
@@ -1295,8 +1295,8 @@ extern "C"	{
 		}
 	
     }
-    void nemo_ZLexcount(nemo_t * nemo,const char * key,const size_t keylen,const char * min,const size_t minlen,const char * max,const size_t maxlen,int64_t * count,char ** errptr){
-     	nemo_SaveError(errptr,nemo->rep->ZLexcount(std::string(key,keylen),std::string(min,minlen),std::string(max,maxlen),count));
+    void nemo_ZLexcount(nemo_t * nemo,const char * key,const size_t keylen,const char * min,const size_t minlen,const char * max,const size_t maxlen,int64_t * count, bool is_lo, bool is_ro, char ** errptr){
+     	nemo_SaveError(errptr,nemo->rep->ZLexcount(std::string(key,keylen),std::string(min,minlen),std::string(max,maxlen),count,is_lo,is_ro));
     }
     void nemo_ZRemrangebylex(nemo_t * nemo,const char * key,const size_t keylen,const char * min,const size_t minlen,const char * max,const size_t maxlen,bool is_lo,bool is_ro,int64_t * count,char ** errptr){
      	nemo_SaveError(errptr,nemo->rep->ZRemrangebylex(std::string(key,keylen),std::string(min,minlen),std::string(max,maxlen),is_lo,is_ro,count));

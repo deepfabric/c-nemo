@@ -832,21 +832,38 @@ Status Nemo::ZScore(const std::string &key, const std::string &member, double *s
     return s;
 }
 
-Status Nemo::ZRangebylex(const std::string &key, const std::string &min, const std::string &max, std::vector<std::string> &members) {
+Status Nemo::ZRangebylex(const std::string &key, const std::string &min, const std::string &max, std::vector<std::string> &members , bool is_lo, bool is_ro ) {
 //    MutexLock l(&mutex_zset_);
     ZLexIterator *iter = ZScanbylex(key, min, max, -1, true);
+    members.clear();
+    if(is_lo) 
+        if(iter->Valid())
+            if(iter->member() == min)
+                iter->Next();
     for (; iter->Valid(); iter->Next()) {
         members.push_back(iter->member());
     }
+    if(is_ro)
+        if(members.size()>0)
+            if(members.back()==max)
+                members.pop_back();
     delete iter;
     return Status::OK();
 }
 
-Status Nemo::ZLexcount(const std::string &key, const std::string &min, const std::string &max, int64_t* count) {
+Status Nemo::ZLexcount(const std::string &key, const std::string &min, const std::string &max, int64_t* count, bool is_lo, bool is_ro) {
 //    MutexLock l(&mutex_zset_);
     *count = 0;
+    std::string member;
     ZLexIterator *iter = ZScanbylex(key, min, max, -1, true);
+    if(is_lo) 
+        if(iter->Valid())
+            if(iter->member() == min)
+                iter->Next();    
     for (; iter->Valid(); iter->Next()) {
+        if(is_ro)
+            if(iter->member()==max)
+                break;
         (*count)++;
     }
     delete iter;
