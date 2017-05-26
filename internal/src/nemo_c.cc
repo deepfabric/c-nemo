@@ -1055,7 +1055,7 @@ extern "C"	{
 	}
 
 	void nemo_SRandomMember(nemo_t * nemo,  const char * key,const size_t keylen,		\
-						int * res_count,char ** member_list, size_t * member_list_strlen, const int count, int64_t * res, char ** errptr){
+						int * res_count,char *** member_list, size_t ** member_list_strlen, const int count, int64_t * res, char ** errptr){
 		std::vector<std::string> members(count);
 		Status s = nemo->rep->SRandMember(std::string(key,keylen),members,count);
 		if(s.ok())
@@ -1073,11 +1073,22 @@ extern "C"	{
 			*errptr = strdup(s.ToString().c_str());
 		}		
 		*res_count = members.size();
-		for (int i = 0; i < *res_count; ++i)
+		if (*res_count > 0)
 		{
-			member_list[i] = CopyString(members[i]); 
-			member_list_strlen[i] = members[i].size();
+			*member_list = new char * [*res_count];
+			*member_list_strlen = new size_t [*res_count];
+			for (int i = 0; i < *res_count; ++i)
+			{
+				(*member_list)[i] = CopyString(members[i]); 
+				(*member_list_strlen)[i] = members[i].size();
+			}			
 		}
+		else
+		{
+			*member_list = nullptr;
+			*member_list_strlen = nullptr;
+		}
+
 	}
     void nemo_SMove(nemo_t * nemo,const char * source,const size_t slen,const char * dest,const size_t destlen,\
 						const char * member,const size_t memlen,int64_t * res,char ** errptr){

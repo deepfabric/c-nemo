@@ -264,7 +264,7 @@ extern 	void nemo_SIsMember(nemo_t * nemo,const char * key,const size_t keylen, 
 extern 	void nemo_SPop(nemo_t * nemo,const char * key,const size_t keylen,  char ** member, size_t * len, int64_t * res, char ** errptr);
 
 extern 	void nemo_SRandomMember(nemo_t * nemo,  const char * key,const size_t keylen,		\
-						int * res_count,char ** member_list, size_t * member_list_strlen, const int count, int64_t * res, char ** errptr);
+						int * res_count,char *** member_list, size_t ** member_list_strlen, const int count, int64_t * res, char ** errptr);
 
 extern  void nemo_SMove(nemo_t * nemo,const char * source,const size_t slen,const char * dest,const size_t destlen,\
 						const char * member,const size_t memlen,int64_t * res,char ** errptr);
