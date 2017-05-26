@@ -66,6 +66,9 @@ int main()
     s = n->SMAdd("setKey",members,&SMAdd_res);
     assert(s.ok());
     assert(SMAdd_res = 2);
+    n->SCard("setKey",&SCard_res);
+    assert(SCard_res == 3);
+
     log_info("======Test SMAdd OK=====");
     log_info("======Test SMRem======");
     int64_t SMRem_res = 0;
@@ -76,7 +79,7 @@ int main()
     assert(s.ok());
     assert(SMRem_res==2);
     n->SCard("setKey",&SCard_res);
-
+    assert(SCard_res == 1);
     log_info("======Test SMRem OK=====");
 
     /*

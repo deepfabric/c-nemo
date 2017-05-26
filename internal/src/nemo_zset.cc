@@ -215,16 +215,16 @@ Status Nemo::ZMAdd(const std::string &key, const std::vector<SM> &sms, int64_t *
 
     int64_t count = 0;
     (*res) = 0;
+    int64_t sum = 0;
+    int64_t volume = 0;     
     for(SM sm:sms)
     {
         int ret = DoZSet(key, sm.score, sm.member, batch);
         if (ret == 2) {
-            if (IncrZLen(key, 1, key.size()*2+sm.member.size()*2+sizeof(double)+sizeof(int64_t), batch) == 0) {
-                (*res)++;
-                count++;
-            } else {
-                return Status::Corruption("incr zsize error");
-            }
+            (*res)++;
+            sum++;
+            volume += key.size()*2+sm.member.size()*2+sizeof(double)+sizeof(int64_t);
+            count++;
         } else if (ret == 1){
             count++;
         }else if(ret == 0){
@@ -235,7 +235,12 @@ Status Nemo::ZMAdd(const std::string &key, const std::vector<SM> &sms, int64_t *
         } 
     }
     if(count > 0)
-        s = zset_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &batch);
+    {
+        if(sum>0)
+            if (IncrZLen(key, sum, volume, batch) < 0)
+                return Status::Corruption("incr zsize error");             
+        s = zset_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &batch);                     
+    }
     return s;
 }
 
@@ -726,13 +731,14 @@ Status Nemo::ZMRem(const std::string &key, const std::vector<std::string> &membe
     }
 
     Status s;
-    *res = 0;
     rocksdb::WriteBatch batch;
     std::string old_score;
 
     //MutexLock l(&mutex_zset_);
     RecordLock l(&mutex_zset_record_, key);
     *res = 0;
+    int64_t sum = 0;
+    int64_t volume = 0;     
     for(std::string member:members)
     {
         std::string db_key = EncodeZSetKey(key, member);
@@ -743,11 +749,9 @@ Status Nemo::ZMRem(const std::string &key, const std::vector<std::string> &membe
             double dscore = *((double *)old_score.data());
             std::string score_key = EncodeZScoreKey(key, member, dscore);
             batch.Delete(score_key);
-            if (IncrZLen(key, -1, -(key.size()*2+member.size()*2+sizeof(double)+sizeof(int64_t)),batch) == 0) {
-                (*res)++;
-            } else {
-                return Status::Corruption("incr zsize error");
-            }
+            (*res)++;
+            sum++;
+            volume += key.size()*2+member.size()*2+sizeof(double)+sizeof(int64_t);
         } else if(s.IsNotFound()){
             continue;
         }
@@ -756,8 +760,13 @@ Status Nemo::ZMRem(const std::string &key, const std::vector<std::string> &membe
             return s;
         }
     }
-    if(*res > 0)
-        s = zset_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &batch);
+    if(*res > 0){
+            if (IncrZLen(key, -sum, -volume, batch) < 0) {
+                return Status::Corruption("incr zsize error");
+            }
+        s = zset_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &batch);             
+    }
+
     return s;
 }
 

@@ -48,7 +48,7 @@ int main()
 
     //ZMAdd ZMRem
     log_info("======Test ZMAdd======");
-    std::vector<SM> sms(3);
+    std::vector<SM> sms(4);
     int64_t ZMAdd_res = 0;
     sms[0].score = 1.0;
     sms[0].member = "field11";
@@ -56,23 +56,30 @@ int main()
     sms[1].member = "MAddFiled";
     sms[2].score = 3.0;
     sms[2].member = "field11";
+    sms[3].score = 4.0;
+    sms[3].member = "field2";
     s = n->ZMAdd("tZSetKey",sms,&ZMAdd_res);
     assert(s.ok());
-    assert(ZMAdd_res = 1);
+    assert(ZMAdd_res = 2);
     double score;
     s = n->ZScore("tZSetKey", "field11", &score);
     assert(s.ok());
     assert(score = 3.0);
+    s = n->ZCard("tZSetKey",&zcard_sum);
+    assert(s.ok());
+    assert(zcard_sum = 3);
     log_info("======Test ZMAdd OK=====");
     log_info("======Test ZMRem======");
-    std::vector<std::string> members(2);
+    std::vector<std::string> members(3);
     int64_t ZMRem_res = 0;
     members[0] = "MAddFiled";
     members[1] = "MAdd-non-Filed";
+    members[2] = "field2";
     s = n->ZMRem("tZSetKey",members,&ZMRem_res);
     assert(s.ok());
-    assert(ZMRem_res==1);
-    n->ZCard("tZSetKey",&zcard_sum);
+    assert(ZMRem_res==2);
+    s = n->ZCard("tZSetKey",&zcard_sum);
+    assert(s.ok());    
     assert(zcard_sum==1);
     log_info("======Test ZMRem OK=====");
 
