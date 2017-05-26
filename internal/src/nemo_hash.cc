@@ -516,7 +516,8 @@ Status Nemo::HSetnx(const std::string &key, const std::string &field, const std:
         return s;
     } else if(s.ok()) {
         *res = 0;
-        return Status::Corruption("Already Exist");
+//      return Status::Corruption("Already Exist");
+        return Status::OK();
     } else {
         *res = 1;        
         return Status::Corruption("HGet Error");
