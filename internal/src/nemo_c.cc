@@ -106,6 +106,21 @@ extern "C"	{
 
 	}
 
+	void nemo_SetOptions(nemo_options_t * cOpts,GoNemoOpts * goOpts)
+	{
+		cOpts->rep.create_if_missing = goOpts->create_if_missing;
+		cOpts->rep.write_buffer_size = goOpts->write_buffer_size;
+		cOpts->rep.max_open_files 	 = goOpts->max_open_files;
+		cOpts->rep.use_bloomfilter   = goOpts->use_bloomfilter;
+		cOpts->rep.write_threads     = goOpts->write_threads;
+		cOpts->rep.target_file_size_base 	      = goOpts->target_file_size_base;
+		cOpts->rep.target_file_size_multiplier    = goOpts->target_file_size_multiplier;
+		cOpts->rep.compression 				      = goOpts->compression;
+		cOpts->rep.max_background_flushes         = goOpts->max_background_flushes;
+		cOpts->rep.max_background_compactions     = goOpts->max_background_compactions;
+		cOpts->rep.max_bytes_for_level_multiplier = goOpts->max_bytes_for_level_multiplier;
+	}
+
 	void nemo_Compact(nemo_t * nemo,int db_type,bool sync,char ** errptr){
 		nemo_SaveError(errptr,nemo->rep->Compact(static_cast<nemo::DBType>(db_type),sync));
 	}

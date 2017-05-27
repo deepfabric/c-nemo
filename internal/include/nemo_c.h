@@ -25,6 +25,21 @@ typedef struct nemo_VolumeIterator_t nemo_VolumeIterator_t;
 typedef struct nemo_DBNemo_t nemo_DBNemo_t;
 typedef struct nemo_WriteBatch_t nemo_WriteBatch_t;
 
+typedef struct{
+    bool create_if_missing;
+    int write_buffer_size;
+    int max_open_files;
+    bool use_bloomfilter;
+    int write_threads;
+
+    // default target_file_size_base and multiplier is the save as rocksdb
+    int target_file_size_base;
+    int target_file_size_multiplier;
+    bool compression;
+    int max_background_flushes;
+    int max_background_compactions;
+    int max_bytes_for_level_multiplier;	
+} GoNemoOpts;
 
 //c style string structure as return value type of C API function
 //member str point to a c++ string object which is dynamic allocate,
@@ -62,6 +77,8 @@ void nemoStrFree(nemoStr * str);
 extern nemo_t * nemo_Create(const char * db_path,const nemo_options_t * options);
 
 extern nemo_options_t * nemo_CreateOption();
+
+extern void nemo_SetOptions(nemo_options_t * cOpts, GoNemoOpts * goOpts);
 
 extern void nemo_Compact(nemo_t * nemo,int db_type,bool sync,char ** errptr);
 
