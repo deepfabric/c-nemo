@@ -380,7 +380,7 @@ extern "C"	{
 
 	nemo_KIterator_t  * nemo_KScanWithHandle(nemo_t *nemo, nemo_DBNemo_t * db,const char * start,const size_t startlen, const char * end, const size_t endlen, bool use_snapshot){
 		nemo_KIterator_t * it = new nemo_KIterator_t;
-		it->rep = nemo->rep->KScanWithHandle(db->rep,std::string(start,startlen),std::string(end,endlen),use_snapshot);
+		it->rep = nemo->rep->KScanWithHandle(db->rep,std::string(start,startlen),std::string(end,endlen),1LL << 60,use_snapshot);
 		return it;		
 	}
 
@@ -1527,7 +1527,7 @@ extern "C"	{
 		nemo_VolumeIterator_t * it = new nemo_VolumeIterator_t;
 		std::string startstr(start,startlen);
 		std::string endstr(end,endlen);	
-		it->rep = new nemo::VolumeIterator(nemo->rep,startstr,endstr,true);
+		it->rep = new nemo::VolumeIterator(nemo->rep,startstr,endstr,use_snapshot);
 		return it;
 	}
 
