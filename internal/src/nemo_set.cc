@@ -356,11 +356,15 @@ Status Nemo::SMembers(const std::string &key, std::vector<std::string> &members)
     return Status::OK();
 }
 
+// Modify for dead lock
 Status Nemo::SUnion(const std::vector<std::string> &keys, std::vector<std::string>& members) {
     std::map<std::string, bool> result_flag;
-    
+    std::set<std::string> lock_keys(keys.begin(), keys.end());
+    for (auto iter = lock_keys.begin(); iter != lock_keys.end(); iter++) {
+      RecordLock l(&mutex_set_record_, *iter);
+    }
     for (int i = 0; i < (int)keys.size(); i++) {
-        RecordLock l(&mutex_set_record_, keys[i]);
+//      RecordLock l(&mutex_set_record_, keys[i]);
         SIterator *iter = SScan(keys[i], -1, true);
         
         for (; iter->Valid(); iter->Next()) {
@@ -386,8 +390,14 @@ Status Nemo::SUnionStore(const std::string &destination, const std::vector<std::
     std::map<std::string, int> member_result;
     std::map<std::string, int>::iterator it;
 
+    std::set<std::string> lock_keys(keys.begin(), keys.end());
+    lock_keys.insert(destination);
+    for (auto iter = lock_keys.begin(); iter != lock_keys.end(); iter++) {
+      RecordLock l(&mutex_set_record_, *iter);
+    }
+
     for (int i = 0; i < numkey; i++) {
-        RecordLock l(&mutex_set_record_, keys[i]);
+//      RecordLock l(&mutex_set_record_, keys[i]);
         SIterator *iter = SScan(keys[i], -1, true);
         
         for (; iter->Valid(); iter->Next()) {
@@ -400,7 +410,7 @@ Status Nemo::SUnionStore(const std::string &destination, const std::vector<std::
     Status s;
     int64_t tmp_res;
 
-    RecordLock l(&mutex_set_record_, destination);
+//  RecordLock l(&mutex_set_record_, destination);
     int64_t sum = 0;
     SCard(destination,&sum);
     if (sum > 0) {
@@ -439,6 +449,12 @@ Status Nemo::SIsMember(const std::string &key, const std::string &member,bool * 
 
 //Note: no lock
 Status Nemo::SInter(const std::vector<std::string> &keys, std::vector<std::string>& members) {
+
+    std::set<std::string> lock_keys(keys.begin(), keys.end());
+    for (auto iter = lock_keys.begin(); iter != lock_keys.end(); iter++) {
+      RecordLock l(&mutex_set_record_, *iter);
+    }
+
     int numkey = keys.size();
     if (numkey <= 0) {
         return Status::InvalidArgument("SInter invalid parameter, no keys");
@@ -539,6 +555,13 @@ Status Nemo::SInterStore(const std::string &destination, const std::vector<std::
 
 // TODO need lock
 Status Nemo::SDiff(const std::vector<std::string> &keys, std::vector<std::string>& members) {
+
+
+    std::set<std::string> lock_keys(keys.begin(), keys.end());
+    for (auto iter = lock_keys.begin(); iter != lock_keys.end(); iter++) {
+      RecordLock l(&mutex_set_record_, *iter);
+    }
+
     int numkey = keys.size();
     if (numkey <= 0) {
         return Status::Corruption("SDiff invalid parameter, no keys");
@@ -565,6 +588,13 @@ Status Nemo::SDiff(const std::vector<std::string> &keys, std::vector<std::string
 }
 
 Status Nemo::SDiffStore(const std::string &destination, const std::vector<std::string> &keys, int64_t *res) {
+
+    std::set<std::string> lock_keys(keys.begin(), keys.end());
+    lock_keys.insert(destination);
+    for (auto iter = lock_keys.begin(); iter != lock_keys.end(); iter++) {
+      RecordLock l(&mutex_set_record_, *iter);
+    }
+
     int numkey = keys.size();
     //MutexLock l(&mutex_set_);
     if (numkey <= 0) {
@@ -596,7 +626,7 @@ Status Nemo::SDiffStore(const std::string &destination, const std::vector<std::s
     Status s;
     int64_t tmp_res;
 
-    RecordLock l(&mutex_set_record_, destination);
+//  RecordLock l(&mutex_set_record_, destination);
     int64_t sum = 0;
     SCard(destination,&sum);
     if (sum > 0) {
@@ -776,8 +806,16 @@ Status Nemo::SMove(const std::string &source, const std::string &destination, co
     std::string source_key = EncodeSetKey(source, member);
     std::string destination_key = EncodeSetKey(destination, member);
 
-    RecordLock l1(&mutex_set_record_, source);
-    RecordLock l2(&mutex_set_record_, destination);
+
+    std::set<std::string> lock_keys;
+    lock_keys.insert(source);
+    lock_keys.insert(destination);    
+    for (auto iter = lock_keys.begin(); iter != lock_keys.end(); iter++) {
+      RecordLock l(&mutex_set_record_, *iter);
+    }
+
+//  RecordLock l1(&mutex_set_record_, source);
+//  RecordLock l2(&mutex_set_record_, destination);
     std::string val;
     s = set_db_->Get(rocksdb::ReadOptions(), source_key, &val);
 
