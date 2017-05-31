@@ -1527,7 +1527,7 @@ extern "C"	{
 		nemo_VolumeIterator_t * it = new nemo_VolumeIterator_t;
 		std::string startstr(start,startlen);
 		std::string endstr(end,endlen);	
-		it->rep = new nemo::VolumeIterator(nemo->rep,startstr,endstr,use_snapshot);
+		it->rep = new nemo::VolumeIterator(nemo->rep,startstr,endstr,1LL << 60,use_snapshot);
 		return it;
 	}
 

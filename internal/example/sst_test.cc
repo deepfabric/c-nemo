@@ -10,6 +10,8 @@
 
 #include "rocksdb/db.h"
 
+#include "nemo_volume_iterator.h"
+
 using namespace nemo;
 std::string db_path = "/tmp/nemo/sst_test";
 std::string db_dump_path = "/tmp/nemo/sst_test_dump";
@@ -90,6 +92,16 @@ int main()
     s = n->RawScanSaveAll(db_dump_path,"A","zz",true);
     assert(s.ok());
 
+    std::cout<< "Volume Scan before ingest:"<< std::endl;
+    VolumeIterator * vit = new VolumeIterator(n,"A","zz",100,true);
+    for(int i=0;vit->Valid();vit->Next(),i++){
+        std::cout<<"iterator loops "<< i <<"key:"<< vit->key()
+                <<",value:" << vit->value()
+                <<",type:" << vit->type()
+                <<std::endl;
+    }
+    delete vit;
+
     delete n;
 
     system("rm -rf /tmp/nemo/sst_test");
@@ -100,6 +112,16 @@ int main()
 
     s = n->IngestFile(db_dump_path);
     assert(s.ok());
+
+    std::cout<< "Volume Scan after ingest:"<< std::endl;
+    vit = new VolumeIterator(n,"A","zz",100,true);
+    for(int i=0;vit->Valid();vit->Next(),i++){
+        std::cout<<"iterator loops "<< i <<"key:"<< vit->key()
+                <<",value:" << vit->value()
+                <<",type:" << vit->type()
+                <<std::endl;
+    }
+    delete vit;
 
     std::string res_kv;
     s = n->Get("K1",&res_kv);
