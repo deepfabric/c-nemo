@@ -766,6 +766,10 @@ Status Nemo::ZMRem(const std::string &key, const std::vector<std::string> &membe
             }
         s = zset_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &batch);             
     }
+    else
+    {
+        return Status::OK();
+    }
 
     return s;
 }
