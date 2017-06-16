@@ -9,7 +9,8 @@ LIBS = -Wl,-Bstatic -lnemo -lnemodb -lrocksdb \
 	   -lsnappy \
 	   -lrt \
 	   -lz \
-	   -lbz2
+	   -lbz2 \
+	   -ljemalloc
 
 INCLUDE_PATH = -I../../output/include/ \
 							 -I../../3rdparty/nemo-rocksdb/rocksdb/ \
