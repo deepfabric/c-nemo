@@ -31,14 +31,14 @@ inline int64_t NowMicros() {
   return static_cast<uint64_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
 }
 
-void gen_random(char *s, const int len) {
+void gen_random(char *s, const int len, unsigned int * seedp) {
   static const char alphanum[] =
       "0123456789"
       "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
       "abcdefghijklmnopqrstuvwxyz";
 
   for (int i = 0; i < len; ++i) {
-    s[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
+    s[i] = alphanum[rand_r(seedp) % (sizeof(alphanum) - 1)];
   }
 
   s[len] = 0;
@@ -47,14 +47,15 @@ void gen_random(char *s, const int len) {
 void* ThreadMain1(void *arg) {
   int64_t st, ed, t_sum = 0LL;
   Status s;
-  srand(time(NULL));
+  //srand(time(NULL));
+  unsigned int seed = time(NULL);
 
   for (int i = 0; i < cnt; i++) {
-    int key_id = rand() % key_num;
+    int key_id = rand_r(&seed) % key_num;
 
     string key = "hash_key:" + to_string(key_id);
-    gen_random(field, length);
-    gen_random(value, length);
+    gen_random(field, length, &seed);
+    gen_random(value, length, &seed);
     st = NowMicros();
     int HSetRes;
     s = n->HSet(key, field, value, &HSetRes);
@@ -62,9 +63,9 @@ void* ThreadMain1(void *arg) {
 
     t_sum += ed - st;
 
-    if (i > 0 && i % 10000 == 0) {
-      printf ("   tid:%10u run %d request, tot is %10lu\n", pthread_self(), i + 1, t_sum);
-    }
+//    if (i > 0 && i % 10000 == 0) {
+//     printf ("   tid:%10u run %d request, tot is %10lu\n", pthread_self(), i + 1, t_sum);
+//    }
   }
   printf ("  tid:%10u end, run %d request, tot is %10lu\n", pthread_self(), cnt, t_sum);
   //total += t_sum;
