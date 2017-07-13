@@ -71,7 +71,8 @@ int main() {
   assert(s.ok());  
   assert(res == "MetaVal2"); 
 
-  KIterator* kit = n->KScanWithHandle(meta,"A","x",100,true);
+  std::cout << "scanwithhandle: A-MetaKey2" << std::endl;
+  KIteratorRO* kit = n->KScanWithHandle(meta,"A","MetaKey2",100,true);
   while(kit->Valid()){
     std::string key,val;
     key.assign(kit->key().data(),kit->key().size());
@@ -82,10 +83,22 @@ int main() {
   }
   delete kit;
 
-  s = n->RangeDelWithHandle(meta,"A","x",100);
+  s = n->RangeDelWithHandle(meta,"A","MetaKey2",100);
   assert(s.ok());  
   s = n->GetWithHandle(meta,"Hello",&res);
   assert(s.IsNotFound());
+
+  std::cout << "scanwithhandle again: A-z" << std::endl;
+  kit = n->KScanWithHandle(meta,"A","z",100,true);
+  while(kit->Valid()){
+    std::string key,val;
+    key.assign(kit->key().data(),kit->key().size());
+    val.assign(kit->value().data(),kit->value().size());
+    std::cout << "key:" << key << std::endl
+              << "val:" << val << std::endl;
+    kit->Next();
+  }
+  delete kit;
 
   s = n->RangeDel("A","x",100);
   assert(s.ok()); 

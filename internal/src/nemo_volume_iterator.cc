@@ -15,7 +15,7 @@ nemo::VolumeIterator::VolumeIterator(Nemo * nemo, const std::string  &start,cons
   Lit = n->LmetaScan(start,end,limit,use_snapshot);
   Sit = n->SmetaScan(start,end,limit,use_snapshot);
   Zit = n->ZmetaScan(start,end,limit,use_snapshot);  
-  Kit = n->KScan(start,end,limit,use_snapshot);
+  Kit = n->KScanRO(start,end,limit,use_snapshot);
   kvt.resize(0);
   Init();
 }
@@ -163,7 +163,7 @@ nemo::Status nemo::Nemo::RangeDel(const std::string  & start, const std::string 
 }
 
 nemo::Status nemo::Nemo::RangeDelWithHandle(rocksdb::DBNemo * db,const std::string  & start, const std::string & end, uint64_t limit){
-    KIterator * it = KScanWithHandle(db,start,end,limit);
+    KIteratorRO * it = KScanWithHandle(db,start,end,limit);
     int64_t count;
     nemo::Status s;
     for(;it->Valid();it->Next()){

@@ -26,7 +26,7 @@ private:
     LmetaIterator * Lit;
     SmetaIterator * Sit;
     ZmetaIterator * Zit;
-    KIterator     * Kit;
+    KIteratorRO   * Kit;
     bool    use_snapshot_;
     std::string end_;
     uint64_t limit_;

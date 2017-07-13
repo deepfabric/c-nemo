@@ -386,7 +386,28 @@ KIterator* Nemo::KScan(const std::string &start, const std::string &end, uint64_
     return new KIterator(it, kv_db_.get(), iter_options); 
 }
 
-KIterator* Nemo::KScanWithHandle(rocksdb::DBNemo * db, const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot) {
+KIteratorRO* Nemo::KScanRO(const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot) {
+    std::string key_end;
+    if (end.empty()) {
+        key_end = "";
+    } else {
+        key_end = end;
+    }
+    rocksdb::ReadOptions read_options;
+    if (use_snapshot) {
+        read_options.snapshot = kv_db_->GetSnapshot();
+    }
+    read_options.fill_cache = false;
+
+    IteratorOptions iter_options(key_end, limit, read_options);
+
+    rocksdb::Iterator *it = kv_db_->NewIterator(read_options);
+    it->Seek(start);
+
+    return new KIteratorRO(it, kv_db_.get(), iter_options); 
+}
+
+KIteratorRO* Nemo::KScanWithHandle(rocksdb::DBNemo * db, const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot) {
     std::string key_end;
     if (end.empty()) {
         key_end = "";
@@ -404,12 +425,12 @@ KIterator* Nemo::KScanWithHandle(rocksdb::DBNemo * db, const std::string &start,
     rocksdb::Iterator *it = db->NewIterator(read_options);
     it->Seek(start);
 
-    return new KIterator(it, db, iter_options); 
+    return new KIteratorRO(it, db, iter_options); 
 }
 
 Status Nemo::SeekWithHandle( rocksdb::DBNemo * db, std::string & start,std::string * nextKey,std::string * nextValue ){
 
-    KIterator * kit = KScanWithHandle(db,start,"",1,false);
+    KIteratorRO * kit = KScanWithHandle(db,start,"",1,false);
     if(kit->Valid())
     {
         nextKey->assign(kit->key().data(),kit->key().size());

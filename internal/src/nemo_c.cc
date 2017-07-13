@@ -23,6 +23,7 @@ using nemo::Position;
 using nemo::Aggregate;
 using nemo::Iterator;
 using nemo::KIterator;
+using nemo::KIteratorRO;
 using nemo::HIterator;
 using nemo::ZIterator;
 using nemo::SIterator;
@@ -45,6 +46,7 @@ extern "C"	{
 	struct nemo_options_t { Options rep; };
 	struct nemo_Iterator_t { Iterator * rep;};	
 	struct nemo_KIterator_t { KIterator * rep;};
+	struct nemo_KIteratorRO_t { KIteratorRO * rep;};
 	struct nemo_HIterator_t { HIterator * rep;};
 	struct nemo_ZIterator_t { ZIterator * rep;};
 	struct nemo_SIterator_t { SIterator * rep;};
@@ -378,10 +380,34 @@ extern "C"	{
 		return it;		
 	}
 
-	nemo_KIterator_t  * nemo_KScanWithHandle(nemo_t *nemo, nemo_DBNemo_t * db,const char * start,const size_t startlen, const char * end, const size_t endlen, bool use_snapshot){
-		nemo_KIterator_t * it = new nemo_KIterator_t;
+	nemo_KIteratorRO_t  * nemo_KScanWithHandle(nemo_t *nemo, nemo_DBNemo_t * db,const char * start,const size_t startlen, const char * end, const size_t endlen, bool use_snapshot){
+		nemo_KIteratorRO_t * it = new nemo_KIteratorRO_t;
 		it->rep = nemo->rep->KScanWithHandle(db->rep,std::string(start,startlen),std::string(end,endlen),1LL << 60,use_snapshot);
 		return it;		
+	}
+
+	void KRONext(nemo_KIteratorRO_t * it)
+	{
+		it->rep->Next();
+	}
+	bool KROValid(nemo_KIteratorRO_t * it){
+		return it->rep->Valid();	
+	}
+	void KROkey(nemo_KIteratorRO_t * it,char ** key ,size_t* keylen)
+	{
+		*key = CopyString(it->rep->key());
+		*keylen = it->rep->key().size();
+	}
+	void KROvalue(nemo_KIteratorRO_t * it,char ** value ,size_t* valuelen)
+	{
+		*value = CopyString(it->rep->value());
+		*valuelen = it->rep->value().size();
+	}
+
+	void KROIteratorFree(nemo_KIteratorRO_t * it)
+	{
+		delete it->rep;
+		delete it;
 	}
 
 	void nemo_SeekWithHandle(nemo_t *nemo, nemo_DBNemo_t * db,const char * start,const size_t startlen, char ** NextKey, size_t * NextKeylen,char ** NextVal, size_t * NextVallen,char ** errptr){

@@ -114,7 +114,20 @@ int main()
     assert(s.ok());
 
     std::cout<< "Volume Scan:"<< std::endl;
-    VolumeIterator * vit = new VolumeIterator(n,"A","zz",100,true);
+    VolumeIterator * vit = new VolumeIterator(n,"A","zsetKey",100,true);
+    for(int i=0;vit->Valid();vit->Next(),i++){
+        std::cout<<"iterator loops "<< i <<"key:"<< vit->key()
+                <<",value:" << vit->value()
+                <<",type:" << vit->type()
+                <<std::endl;
+    }
+    delete vit;
+
+    s = n->RangeDel("A","zsetKey",100);
+    assert(s.ok());
+
+    std::cout<< "Volume Scan again:"<< std::endl;
+    vit = new VolumeIterator(n,"A","zz",100,true);
     for(int i=0;vit->Valid();vit->Next(),i++){
         std::cout<<"iterator loops "<< i <<"key:"<< vit->key()
                 <<",value:" << vit->value()

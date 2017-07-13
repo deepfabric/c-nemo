@@ -16,6 +16,7 @@ typedef	struct nemo_t nemo_t;
 typedef	struct nemo_options_t nemo_options_t;
 typedef	struct nemo_Iterator_t nemo_Iterator_t;
 typedef	struct nemo_KIterator_t nemo_KIterator_t;
+typedef	struct nemo_KIteratorRO_t nemo_KIteratorRO_t;
 typedef	struct nemo_HIterator_t nemo_HIterator_t;
 typedef	struct nemo_ZIterator_t nemo_ZIterator_t;
 typedef	struct nemo_SIterator_t nemo_SIterator_t;
@@ -389,7 +390,13 @@ extern void nemo_DeleteWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,
 								const char * key, const size_t keylen, 
 								char ** errptr); 
 
-extern nemo_KIterator_t  * nemo_KScanWithHandle(nemo_t *nemo, nemo_DBNemo_t * db,const char * start,const size_t startlen, const char * end, const size_t endlen, bool use_snapshot);
+extern nemo_KIteratorRO_t  * nemo_KScanWithHandle(nemo_t *nemo, nemo_DBNemo_t * db,const char * start,const size_t startlen, const char * end, const size_t endlen, bool use_snapshot);
+
+extern void KRONext(nemo_KIteratorRO_t * it);
+extern bool KROValid(nemo_KIteratorRO_t * it);
+extern void KROkey(nemo_KIteratorRO_t * it,char ** key ,size_t* keylen);
+extern void KROvalue(nemo_KIteratorRO_t * it,char ** value ,size_t* valuelen);
+extern void KROIteratorFree(nemo_KIteratorRO_t * it);
 
 extern void nemo_SeekWithHandle(nemo_t *nemo, nemo_DBNemo_t * db,const char * start,const size_t startlen, char ** NextKey, size_t * NextKeylen,char ** NextVal, size_t * NextVallen,char ** errptr);
 

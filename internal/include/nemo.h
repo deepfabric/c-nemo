@@ -113,6 +113,7 @@ public:
     Status Setrange(const std::string key, const int64_t offset, const std::string &value, int64_t *len);
     Status Strlen(const std::string &key, int64_t *len);
     KIterator* KScan(const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot = false);
+    KIteratorRO* KScanRO(const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot = false);    
     Status Scan(int64_t cursor, std::string &pattern, int64_t count, std::vector<std::string>& keys, int64_t* cursor_ret);
 
     Status Keys(const std::string &pattern, std::vector<std::string>& keys);
@@ -259,7 +260,7 @@ public:
         return db->Delete(rocksdb::WriteOptions(),key);
     }
 
-    KIterator* KScanWithHandle(rocksdb::DBNemo * db, const std::string &start, const std::string &end, uint64_t limit = 1LL << 60, bool use_snapshot=true); 
+    KIteratorRO* KScanWithHandle(rocksdb::DBNemo * db, const std::string &start, const std::string &end, uint64_t limit = 1LL << 60, bool use_snapshot=true); 
     Status KDelWithHandle(rocksdb::DBNemo* db,const std::string &key, int64_t *res);
     Status SeekWithHandle( rocksdb::DBNemo * db, std::string & Key,std::string * nextKey,std::string * nextValue );
 

@@ -57,6 +57,37 @@ private:
     void operator=(Iterator&);
 };
 
+class IteratorRO {
+public:
+    IteratorRO(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo,const IteratorOptions& iter_options);
+    virtual ~IteratorRO() {
+      if(ioptions_.read_options.snapshot!=nullptr)
+        db_nemo_->ReleaseSnapshot(ioptions_.read_options.snapshot);
+      delete it_;
+    }
+
+    rocksdb::Slice key();
+    rocksdb::Slice value();
+    virtual void Skip(int64_t offset);
+    virtual void Next();
+    virtual bool Valid();
+    virtual rocksdb::ReadOptions read_options() { return ioptions_.read_options; }
+    int direction()                 {  return ioptions_.direction; }
+
+protected:
+    bool valid_;
+    rocksdb::Iterator *it_;    
+private:
+    bool Check();
+    
+    rocksdb::DBNemo * db_nemo_;    
+    IteratorOptions ioptions_;
+
+    //No Copying Allowed
+    IteratorRO(IteratorRO&);
+    void operator=(IteratorRO&);
+};
+
 class KIterator : public Iterator {
 public:
     KIterator(rocksdb::Iterator *it, rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options);
@@ -76,6 +107,28 @@ private:
     KIterator(KIterator&);
     void operator=(KIterator&);
 };
+
+// KIteratorRO with endpoint: Right Open
+class KIteratorRO : public IteratorRO {
+public:
+    KIteratorRO(rocksdb::Iterator *it, rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options);
+    virtual void Next();
+    virtual void Skip(int64_t offset);
+    virtual bool Valid();
+    std::string key()       { return key_; };
+    std::string value()     { return value_; };
+    
+private:
+    void CheckAndLoadData();
+
+    std::string key_;
+    std::string value_;
+
+    //No Copying Allowed
+    KIteratorRO(KIteratorRO&);
+    void operator=(KIteratorRO&);
+};
+
 
 class HIterator : public Iterator {
 public:
@@ -162,7 +215,7 @@ private:
     void operator=(SIterator&);
 };
 
-class HmetaIterator : public Iterator{
+class HmetaIterator : public IteratorRO{
 public:
     HmetaIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options,const rocksdb::Slice &key);
     virtual void Next();
@@ -178,7 +231,7 @@ private:
     HashMeta meta_;
 };
 
-class LmetaIterator : public Iterator{
+class LmetaIterator : public IteratorRO{
 public:
     LmetaIterator(rocksdb::Iterator *it, rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options,const rocksdb::Slice &key);
     virtual void Next();
@@ -194,7 +247,7 @@ private:
     ListMeta meta_;
 };
 
-class SmetaIterator : public Iterator{
+class SmetaIterator : public IteratorRO{
 public:
     SmetaIterator(rocksdb::Iterator *it, rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options,const rocksdb::Slice &key);
     virtual void Next();
@@ -210,7 +263,7 @@ private:
     SetMeta meta_;
 };
 
-class ZmetaIterator : public Iterator{
+class ZmetaIterator : public IteratorRO{
 public:
     ZmetaIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options,const rocksdb::Slice &key);
     virtual void Next();
