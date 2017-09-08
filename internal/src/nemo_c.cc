@@ -412,15 +412,15 @@ static char* CopyStringSlc(const rocksdb::Slice& str) {
 	bool KROValid(nemo_KIteratorRO_t * it){
 		return it->rep->Valid();	
 	}
-	void KROkey(nemo_KIteratorRO_t * it,char ** key ,size_t* keylen)
+	const char* KROkey(nemo_KIteratorRO_t * it, size_t* keylen)
 	{
-		*key = CopyStringSlc(it->rep->key());
 		*keylen = it->rep->key().size();
+		return it->rep->key().data();
 	}
-	void KROvalue(nemo_KIteratorRO_t * it,char ** value ,size_t* valuelen)
+	const char* KROvalue(nemo_KIteratorRO_t * it, size_t* valuelen)
 	{
-		*value = CopyStringSlc(it->rep->value());
 		*valuelen = it->rep->value().size();
+		return it->rep->value().data();
 	}
 
 	void KROIteratorFree(nemo_KIteratorRO_t * it)

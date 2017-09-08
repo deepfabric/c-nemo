@@ -394,8 +394,8 @@ extern nemo_KIteratorRO_t  * nemo_KScanWithHandle(nemo_t *nemo, nemo_DBNemo_t * 
 
 extern void KRONext(nemo_KIteratorRO_t * it);
 extern bool KROValid(nemo_KIteratorRO_t * it);
-extern void KROkey(nemo_KIteratorRO_t * it,char ** key ,size_t* keylen);
-extern void KROvalue(nemo_KIteratorRO_t * it,char ** value ,size_t* valuelen);
+extern const char* KROkey(nemo_KIteratorRO_t * it, size_t* keylen);
+extern const char* KROvalue(nemo_KIteratorRO_t * it, size_t* valuelen);
 extern void KROIteratorFree(nemo_KIteratorRO_t * it);
 
 extern void nemo_SeekWithHandle(nemo_t *nemo, nemo_DBNemo_t * db,const char * start,const size_t startlen, char ** NextKey, size_t * NextKeylen,char ** NextVal, size_t * NextVallen,char ** errptr);
