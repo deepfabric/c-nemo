@@ -116,10 +116,36 @@ int main()
     std::cout<< "Volume Scan:"<< std::endl;
     VolumeIterator * vit = new VolumeIterator(n,"A","zsetKey",100,true);
     for(int i=0;vit->Valid();vit->Next(),i++){
-        std::cout<<"iterator loops "<< i <<"key:"<< vit->key()
+        std::cout<<"iterator loops "<< i <<"key:"<< vit->key().ToString()
                 <<",value:" << vit->value()
                 <<",type:" << vit->type()
                 <<std::endl;
+    }
+    delete vit;
+
+    vit = new VolumeIterator(n,"A","zsetKey",100,true);
+    if(vit->targetScan(60)){
+        std::cout<< "volume target scan, find the target key" 
+                 << vit->targetKey()
+                 <<std::endl;
+    }
+    else{
+        std::cout<< "can't find the target key, total volume : "
+                 << vit->totalVolume()
+                 <<std::endl;
+    }
+    delete vit;
+
+    vit = new VolumeIterator(n,"A","zsetKey",100,true);
+    if(vit->targetScan(600)){
+        std::cout<< "volume target scan, find the target key:   " 
+                 << vit->targetKey()
+                 <<std::endl;
+    }
+    else{
+        std::cout<< "can't find the target key, total volume : "
+                 << vit->totalVolume()
+                 <<std::endl;
     }
     delete vit;
 
@@ -129,7 +155,7 @@ int main()
     std::cout<< "Volume Scan again:"<< std::endl;
     vit = new VolumeIterator(n,"A","zz",100,true);
     for(int i=0;vit->Valid();vit->Next(),i++){
-        std::cout<<"iterator loops "<< i <<"key:"<< vit->key()
+        std::cout<<"iterator loops "<< i <<"key:"<< vit->key().ToString()
                 <<",value:" << vit->value()
                 <<",type:" << vit->type()
                 <<std::endl;

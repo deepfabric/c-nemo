@@ -95,7 +95,7 @@ int main()
     std::cout<< "Volume Scan before ingest:"<< std::endl;
     VolumeIterator * vit = new VolumeIterator(n,"A","zz",100,true);
     for(int i=0;vit->Valid();vit->Next(),i++){
-        std::cout<<"iterator loops "<< i <<"key:"<< vit->key()
+        std::cout<<"iterator loops "<< i <<"key:"<< vit->key().ToString()
                 <<",value:" << vit->value()
                 <<",type:" << vit->type()
                 <<std::endl;
@@ -116,7 +116,7 @@ int main()
     std::cout<< "Volume Scan after ingest:"<< std::endl;
     vit = new VolumeIterator(n,"A","zz",100,true);
     for(int i=0;vit->Valid();vit->Next(),i++){
-        std::cout<<"iterator loops "<< i <<"key:"<< vit->key()
+        std::cout<<"iterator loops "<< i <<"key:"<< vit->key().ToString()
                 <<",value:" << vit->value()
                 <<",type:" << vit->type()
                 <<std::endl;

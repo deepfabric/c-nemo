@@ -115,14 +115,10 @@ public:
     virtual void Next();
     virtual void Skip(int64_t offset);
     virtual bool Valid();
-    std::string key()       { return key_; };
-    std::string value()     { return value_; };
+    rocksdb::Slice key()       { return IteratorRO::key(); };
+    rocksdb::Slice value()     { return IteratorRO::value(); };
     
 private:
-    void CheckAndLoadData();
-
-    std::string key_;
-    std::string value_;
 
     //No Copying Allowed
     KIteratorRO(KIteratorRO&);
@@ -221,14 +217,13 @@ public:
     virtual void Next();
     virtual void Skip(int64_t offset);
     virtual bool Valid();
-    std::string key()   { return key_; };
-    DefaultMeta value() { return meta_; };
+    rocksdb::Slice rawkey();
+    rocksdb::Slice key();
+    int64_t volume();
     void CheckAndLoadData();
 private:
     HmetaIterator(HmetaIterator&);
     void operator=(HmetaIterator&);
-    std::string key_;
-    HashMeta meta_;
 };
 
 class LmetaIterator : public IteratorRO{
@@ -237,14 +232,13 @@ public:
     virtual void Next();
     virtual void Skip(int64_t offset);
     virtual bool Valid();
-    std::string key()   { return key_; };
-    ListMeta value() { return meta_; };
+    rocksdb::Slice rawkey();
+    rocksdb::Slice key();
+    int64_t volume();
     void CheckAndLoadData();
 private:
     LmetaIterator(LmetaIterator&);
     void operator=(LmetaIterator&);
-    std::string key_;
-    ListMeta meta_;
 };
 
 class SmetaIterator : public IteratorRO{
@@ -253,14 +247,13 @@ public:
     virtual void Next();
     virtual void Skip(int64_t offset);
     virtual bool Valid();
-    std::string key()   { return key_; };
-    SetMeta value() { return meta_; };
+    rocksdb::Slice rawkey();
+    rocksdb::Slice key();
+    int64_t volume();
     void CheckAndLoadData();
 private:
     SmetaIterator(SmetaIterator&);
     void operator=(SmetaIterator&);
-    std::string key_;
-    SetMeta meta_;
 };
 
 class ZmetaIterator : public IteratorRO{
@@ -269,14 +262,13 @@ public:
     virtual void Next();
     virtual void Skip(int64_t offset);
     virtual bool Valid();
-    std::string key()   { return key_; };
-    ZSetMeta value() { return meta_; };
+    rocksdb::Slice rawkey();
+    rocksdb::Slice key();
+    int64_t volume();
     void CheckAndLoadData();
 private:
     ZmetaIterator(ZmetaIterator&);
     void operator=(ZmetaIterator&);
-    std::string key_;
-    ZSetMeta meta_;
 };
 
 }

@@ -261,7 +261,6 @@ public:
     }
 
     KIteratorRO* KScanWithHandle(rocksdb::DBNemo * db, const std::string &start, const std::string &end, uint64_t limit = 1LL << 60, bool use_snapshot=true); 
-    Status KDelWithHandle(rocksdb::DBNemo* db,const std::string &key, int64_t *res);
     Status SeekWithHandle( rocksdb::DBNemo * db, std::string & Key,std::string * nextKey,std::string * nextValue );
 
     // ==============Server=====================

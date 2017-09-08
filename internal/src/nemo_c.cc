@@ -79,6 +79,25 @@ extern "C"	{
         }
 #endif
 
+#ifdef __GO_WRAPPER__
+static char* CopyStringSlc(const rocksdb::Slice& str) {
+  char* result = reinterpret_cast<char*>(malloc(sizeof(char) * str.size()));
+  memcpy(result, str.data(), sizeof(char) * str.size());
+  // There is no '\0' in origin CopyString in file: rocksdb/db/c.cc
+  // used by go,return string wiout '\0'
+  return result;
+}
+#else
+	static char* CopyStringSlc(const rocksdb::Slice& str) {
+	  char* result = reinterpret_cast<char*>(malloc(sizeof(char) *( str.size()+1)));
+	  memcpy(result, str.data(), sizeof(char) * str.size());
+	  result[str.size()]='\0';
+  // used by pure c api, string must be ended with '\0'
+	  // There is no '\0' in origin CopyString in file: rocksdb/db/c.cc
+	  return result;
+	}
+#endif
+
 	static bool nemo_SaveError(char** errptr, const Status& s) {
 	  assert(errptr != nullptr);
 	  if (s.ok()) {
@@ -395,12 +414,12 @@ extern "C"	{
 	}
 	void KROkey(nemo_KIteratorRO_t * it,char ** key ,size_t* keylen)
 	{
-		*key = CopyString(it->rep->key());
+		*key = CopyStringSlc(it->rep->key());
 		*keylen = it->rep->key().size();
 	}
 	void KROvalue(nemo_KIteratorRO_t * it,char ** value ,size_t* valuelen)
 	{
-		*value = CopyString(it->rep->value());
+		*value = CopyStringSlc(it->rep->value());
 		*valuelen = it->rep->value().size();
 	}
 
@@ -1566,14 +1585,24 @@ extern "C"	{
 	}
 	void Volkey(nemo_VolumeIterator_t * it,char ** key ,size_t* keylen)
 	{
-		*key = CopyString(it->rep->key());
+		*key = CopyStringSlc(it->rep->key());
 		*keylen = it->rep->key().size();
 	}
 	void Volvalue(nemo_VolumeIterator_t * it,int64_t * value)
 	{
 		*value = it->rep->value();
 	}
-
+	bool VoltargetScan(nemo_VolumeIterator_t * it,int64_t target)
+	{
+		return it->rep->targetScan(target);
+	}
+	int64_t VoltotalVolume(nemo_VolumeIterator_t * it){
+		return it->rep->totalVolume();
+	}	
+	void VoltargetKey(nemo_VolumeIterator_t * it,char ** key ,size_t* keylen){
+		*key = CopyString(it->rep->targetKey());
+		*keylen = it->rep->targetKey().size();
+	}
 	void VolIteratorFree(nemo_VolumeIterator_t * it)
 	{
 		delete it->rep;

@@ -95,7 +95,7 @@ struct SM {
 };
 
 struct KVT {
-    std::string key;
+    rocksdb::Slice key;
     int64_t volume;
     char kType;
 };

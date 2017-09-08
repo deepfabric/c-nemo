@@ -408,6 +408,9 @@ extern void VolNext(nemo_VolumeIterator_t * it);
 extern bool VolValid(nemo_VolumeIterator_t * it);
 extern void Volkey(nemo_VolumeIterator_t * it,char ** key ,size_t* keylen);
 extern void Volvalue(nemo_VolumeIterator_t * it,int64_t * value);
+extern bool VoltargetScan(nemo_VolumeIterator_t * it,int64_t target);
+extern int64_t VoltotalVolume(nemo_VolumeIterator_t * it);
+extern void VoltargetKey(nemo_VolumeIterator_t * it,char ** key ,size_t* keylen);
 extern void VolIteratorFree(nemo_VolumeIterator_t * it);
 extern 	void nemo_RangeDel(nemo_t * nemo,const char * start, const size_t startlen, 
 								const char * end ,const size_t endlen,

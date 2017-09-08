@@ -183,17 +183,7 @@ void nemo::KIterator::Skip(int64_t offset) {
 // KV KIteratorRO endpoint: Right Open
 nemo::KIteratorRO::KIteratorRO(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options)
   : IteratorRO(it, db_nemo, iter_options) {
-  CheckAndLoadData();
   }
-
-void nemo::KIteratorRO::CheckAndLoadData() {
-  if (valid_) {
-    rocksdb::Slice ks = IteratorRO::key();
-    rocksdb::Slice vs = IteratorRO::value();
-    this->key_.assign(ks.data(), ks.size());
-    this->value_.assign(vs.data(), vs.size());
-  }
-}
 
 bool nemo::KIteratorRO::Valid() {
   return valid_;
@@ -201,12 +191,10 @@ bool nemo::KIteratorRO::Valid() {
 
 void nemo::KIteratorRO::Next() {
   IteratorRO::Next();
-  CheckAndLoadData();
 }
 
 void nemo::KIteratorRO::Skip(int64_t offset) {
   IteratorRO::Skip(offset);
-  CheckAndLoadData();
 }
 
 // HASH
@@ -364,7 +352,6 @@ void nemo::SIterator::Skip(int64_t offset) {
 // HASH meta key
 nemo::HmetaIterator::HmetaIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key)
   : IteratorRO(it,db_nemo, iter_options) {
-    this->key_.assign(key.data(), key.size());      
     CheckAndLoadData();
   }
 
@@ -372,15 +359,24 @@ nemo::HmetaIterator::HmetaIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_ne
 void nemo::HmetaIterator::CheckAndLoadData() {
   if (valid_) {
     rocksdb::Slice ks = IteratorRO::key();
-
-    if (ks[0] == DataType::kHSize) {
-      this->key_.assign(ks.data()+1,ks.size()-1);
-      std::string val(IteratorRO::value().data(),IteratorRO::value().size());
-      meta_.DecodeFrom(val);
-      return ;
+    if (ks[0] != DataType::kHSize) {
+      valid_ = false;
     }
   }
-  valid_ = false;
+}
+
+rocksdb::Slice nemo::HmetaIterator::rawkey(){ 
+  return IteratorRO::key();
+}
+
+rocksdb::Slice nemo::HmetaIterator::key(){ 
+  rocksdb::Slice s = IteratorRO::key(); 
+  return rocksdb::Slice(s.data()+1,s.size()-1);
+}
+
+int64_t nemo::HmetaIterator::volume(){
+  rocksdb::Slice value = IteratorRO::value();
+  return *(int64_t *)(value.data()+ sizeof(int64_t));
 }
 
 bool nemo::HmetaIterator::Valid() {
@@ -399,8 +395,7 @@ void nemo::HmetaIterator::Skip(int64_t offset) {
 
 // List meta key
 nemo::LmetaIterator::LmetaIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key)
-  : IteratorRO(it,db_nemo, iter_options) {
-    this->key_.assign(key.data(), key.size());      
+  : IteratorRO(it,db_nemo, iter_options) {    
     CheckAndLoadData();
   }
 
@@ -408,15 +403,24 @@ nemo::LmetaIterator::LmetaIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_ne
 void nemo::LmetaIterator::CheckAndLoadData() {
   if (valid_) {
     rocksdb::Slice ks = IteratorRO::key();
-
-    if (ks[0] == DataType::kLMeta) {
-      this->key_.assign(ks.data()+1,ks.size()-1);
-      std::string val(IteratorRO::value().data(),IteratorRO::value().size());
-      meta_.DecodeFrom(val);
-      return ;
+    if (ks[0] != DataType::kLMeta) {
+      valid_ = false;
     }
   }
-  valid_ = false;
+}
+
+rocksdb::Slice nemo::LmetaIterator::rawkey(){ 
+  return IteratorRO::key();
+}
+
+rocksdb::Slice nemo::LmetaIterator::key(){ 
+  rocksdb::Slice s = IteratorRO::key(); 
+  return rocksdb::Slice(s.data()+1,s.size()-1);
+}
+
+int64_t nemo::LmetaIterator::volume(){
+  rocksdb::Slice value = IteratorRO::value();
+  return *(int64_t *)(value.data()+ sizeof(int64_t));
 }
 
 bool nemo::LmetaIterator::Valid() {
@@ -435,8 +439,7 @@ void nemo::LmetaIterator::Skip(int64_t offset) {
 
 // Set meta key
 nemo::SmetaIterator::SmetaIterator(rocksdb::Iterator *it, rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key)
-  : IteratorRO(it,db_nemo, iter_options) {
-    this->key_.assign(key.data(), key.size());      
+  : IteratorRO(it,db_nemo, iter_options) {  
     CheckAndLoadData();
   }
 
@@ -445,14 +448,24 @@ void nemo::SmetaIterator::CheckAndLoadData() {
   if (valid_) {
     rocksdb::Slice ks = IteratorRO::key();
 
-    if (ks[0] == DataType::kSSize) {
-      this->key_.assign(ks.data()+1,ks.size()-1);
-      std::string val(IteratorRO::value().data(),IteratorRO::value().size());
-      meta_.DecodeFrom(val);
-      return ;
+    if (ks[0] != DataType::kSSize) {
+      valid_ = false;
     }
   }
-  valid_ = false;
+}
+
+rocksdb::Slice nemo::SmetaIterator::rawkey(){ 
+  return IteratorRO::key();
+}
+
+rocksdb::Slice nemo::SmetaIterator::key(){ 
+  rocksdb::Slice s = IteratorRO::key(); 
+  return rocksdb::Slice(s.data()+1,s.size()-1);
+}
+
+int64_t nemo::SmetaIterator::volume(){
+  rocksdb::Slice value = IteratorRO::value();
+  return *(int64_t *)(value.data()+ sizeof(int64_t));
 }
 
 bool nemo::SmetaIterator::Valid() {
@@ -471,8 +484,7 @@ void nemo::SmetaIterator::Skip(int64_t offset) {
 
 // ZSet meta key
 nemo::ZmetaIterator::ZmetaIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key)
-  : IteratorRO(it,db_nemo, iter_options) {
-    this->key_.assign(key.data(), key.size());      
+  : IteratorRO(it,db_nemo, iter_options) {     
     CheckAndLoadData();
   }
 
@@ -481,14 +493,24 @@ void nemo::ZmetaIterator::CheckAndLoadData() {
   if (valid_) {
     rocksdb::Slice ks = IteratorRO::key();
 
-    if (ks[0] == DataType::kZSize) {
-      this->key_.assign(ks.data()+1,ks.size()-1);
-      std::string val(IteratorRO::value().data(),IteratorRO::value().size());
-      meta_.DecodeFrom(val);
-      return ;
+    if (ks[0] != DataType::kZSize) {
+      valid_ = false;
     }
   }
-  valid_ = false;
+}
+
+rocksdb::Slice nemo::ZmetaIterator::rawkey(){ 
+  return IteratorRO::key();
+}
+
+rocksdb::Slice nemo::ZmetaIterator::key(){ 
+  rocksdb::Slice s = IteratorRO::key(); 
+  return rocksdb::Slice(s.data()+1,s.size()-1);
+}
+
+int64_t nemo::ZmetaIterator::volume(){
+  rocksdb::Slice value = IteratorRO::value();
+  return *(int64_t *)(value.data()+ sizeof(int64_t));
 }
 
 bool nemo::ZmetaIterator::Valid() {

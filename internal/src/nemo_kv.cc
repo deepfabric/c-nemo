@@ -41,19 +41,6 @@ Status Nemo::KDel(const std::string &key, int64_t *res) {
     return s;
 }
 
-Status Nemo::KDelWithHandle(rocksdb::DBNemo* db,const std::string &key, int64_t *res) {
-    Status s;
-    std::string val;
-
-    s = db->Get(rocksdb::ReadOptions(), key, &val);
-    *res = 0;
-    if (s.ok()) {
-        s = db->Delete(rocksdb::WriteOptions(), key);
-        *res = 1;
-    }
-    return s;
-}
-
 Status Nemo::MSet(const std::vector<KV> &kvs) {
     Status s;
     std::vector<KV>::const_iterator it;
