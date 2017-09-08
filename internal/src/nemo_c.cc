@@ -79,25 +79,6 @@ extern "C"	{
         }
 #endif
 
-#ifdef __GO_WRAPPER__
-static char* CopyStringSlc(const rocksdb::Slice& str) {
-  char* result = reinterpret_cast<char*>(malloc(sizeof(char) * str.size()));
-  memcpy(result, str.data(), sizeof(char) * str.size());
-  // There is no '\0' in origin CopyString in file: rocksdb/db/c.cc
-  // used by go,return string wiout '\0'
-  return result;
-}
-#else
-	static char* CopyStringSlc(const rocksdb::Slice& str) {
-	  char* result = reinterpret_cast<char*>(malloc(sizeof(char) *( str.size()+1)));
-	  memcpy(result, str.data(), sizeof(char) * str.size());
-	  result[str.size()]='\0';
-  // used by pure c api, string must be ended with '\0'
-	  // There is no '\0' in origin CopyString in file: rocksdb/db/c.cc
-	  return result;
-	}
-#endif
-
 	static bool nemo_SaveError(char** errptr, const Status& s) {
 	  assert(errptr != nullptr);
 	  if (s.ok()) {
@@ -1583,10 +1564,10 @@ static char* CopyStringSlc(const rocksdb::Slice& str) {
 	bool VolValid(nemo_VolumeIterator_t * it){
 		return it->rep->Valid();	
 	}
-	void Volkey(nemo_VolumeIterator_t * it,char ** key ,size_t* keylen)
+	const char* Volkey(nemo_VolumeIterator_t * it, size_t* keylen)
 	{
-		*key = CopyStringSlc(it->rep->key());
 		*keylen = it->rep->key().size();
+		return it->rep->key().data();		
 	}
 	void Volvalue(nemo_VolumeIterator_t * it,int64_t * value)
 	{

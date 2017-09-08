@@ -823,7 +823,8 @@ inline bool lex_less(std::string * s1, std::string * s2)
 }
 
 Status Nemo::KvRawScanSave(const std::string path,const std::string &start, const std::string &end, bool use_snapshot) {
-    std::string en_start,en_end;
+    rocksdb::Slice start_slc(start);
+    rocksdb::Slice end_slc(end);
     rocksdb::Iterator* it = nullptr;
     rocksdb::ReadOptions read_options;
     rocksdb::Options opts;
@@ -833,17 +834,13 @@ Status Nemo::KvRawScanSave(const std::string path,const std::string &start, cons
     if(!s.ok()){
       return s;
     }
-    // need some init argment to set the size
-    if (end.empty()) {
-        en_end = "";
-    }
+
     if(use_snapshot)
       read_options.snapshot = kv_db_->GetSnapshot();
     read_options.fill_cache = false;
     it = kv_db_->NewIterator(read_options);
 
-    std::string raw_key;
-    it->Seek(en_start);
+    it->Seek(start_slc);
     if(!it->Valid()){
       std::string value_with_ver_ts="";
       rocksdb::DBNemoImpl::AppendVersionAndTS("",&value_with_ver_ts,kv_db_->GetEnv(),0,0);
@@ -852,16 +849,15 @@ Status Nemo::KvRawScanSave(const std::string path,const std::string &start, cons
       return Status::OK();
     }
     for(int i=0;it->Valid();it->Next(),i++){
-        raw_key.clear();
-        raw_key.append(it->key().data(),it->key().size());
-        if(!en_end.empty()){
-          if(raw_key > en_end){
+        rocksdb::Slice iKey = it->key();
+        if(!end_slc.empty()){
+          if(iKey.compare(end_slc) >= 0){
             break;
           }
         }
-        s = f.Add(it->key(),(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
+        s = f.Add(iKey,(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
         if(!s.ok()){
-          if(use_snapshot)          
+          if(use_snapshot)
             kv_db_->ReleaseSnapshot(read_options.snapshot);   
           delete it;
           return s;
@@ -900,7 +896,6 @@ Status Nemo::HashRawScanSave(const std::string path,const std::string &start, co
     read_options.fill_cache = false;
     it = hash_db_->NewIterator(read_options);
 
-    std::string raw_key;
     it->Seek(en_start);
 
     if(!it->Valid()){
@@ -914,18 +909,16 @@ Status Nemo::HashRawScanSave(const std::string path,const std::string &start, co
     }
 
     for(int i=0;it->Valid();it->Next(),i++){
-        raw_key.clear();
-        raw_key.append(it->key().data(),it->key().size());
-
-        if(!en_end.empty()){
-          if(raw_key > en_end){
+        rocksdb::Slice iKey = it->key();
+        if(!end.empty()){
+          if(iKey.compare(en_end)>=0){
             break;
           }
         }         
-        if(raw_key[0]!= DataType::kHSize ){
+        if(iKey[0]!= DataType::kHSize ){
           break;
         }
-        s = f.Add(it->key(),(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
+        s = f.Add(iKey,(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
         if(!s.ok()){
           if(use_snapshot)
             hash_db_->ReleaseSnapshot(read_options.snapshot);   
@@ -933,32 +926,29 @@ Status Nemo::HashRawScanSave(const std::string path,const std::string &start, co
           return s;
         }
         sort_key = new std::string;
-        sort_key->append(1,it->key().size()-1);
-        sort_key->append(it->key().data()+1,it->key().size()-1);
+        sort_key->append(1,DataType::kHash);
+        sort_key->append(1,iKey.size()-1);
+        sort_key->append(iKey.data()+1,iKey.size()-1);
         sort_key_set->push_back(sort_key);
     }
     delete it;
     std::sort(sort_key_set->begin(),sort_key_set->end(),lex_less);
     for(size_t i = 0;i< sort_key_set->size();i++)
     {
-        std::string meta_key;
-        std::string sub_start_key;       
-        std::string dbkey,dbfield;
-        rocksdb::Iterator* sub_it =nullptr;       
-        meta_key.clear();
-        meta_key.assign((*sort_key_set)[i]->data()+1,(*sort_key_set)[i]->size()-1);
-        sub_start_key = EncodeHashKey(meta_key,"");
+        rocksdb::Iterator* sub_it =nullptr;
+        rocksdb::Slice sub_key(*((*sort_key_set)[i]));
         sub_it = hash_db_->NewIterator(read_options);
-        sub_it->Seek(sub_start_key);
+        sub_it->Seek(sub_key);
         while (sub_it->Valid()) {
-          if ((sub_it->key())[0] != DataType::kHash) {
+          rocksdb::Slice iKey = sub_it->key();          
+          if (iKey[0] != DataType::kHash) {
               break;
           }
-          DecodeHashKey(sub_it->key(), &dbkey, &dbfield);
-          if(dbkey != meta_key) {
+          rocksdb::Slice entry_key(iKey.data(),iKey[1]+2);
+          if(entry_key != sub_key) {
             break;
           }
-          s = f.Add(sub_it->key(),(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
+          s = f.Add(iKey,(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
           if(!s.ok()){
             if(use_snapshot)
               hash_db_->ReleaseSnapshot(read_options.snapshot);
@@ -976,7 +966,7 @@ Status Nemo::HashRawScanSave(const std::string path,const std::string &start, co
     s = f.Finish();
     return s;
 }
-
+/*
 void Nemo::HashRawScan(const std::string &start, const std::string &end, bool use_snapshot) {
     std::string en_start,en_end;
     rocksdb::Iterator* it = nullptr;
@@ -1060,7 +1050,7 @@ void Nemo::HashRawScan(const std::string &start, const std::string &end, bool us
     
     delete sort_key_set;
 }
-
+*/
 Status Nemo::ListRawScanSave(const std::string path,const std::string &start, const std::string &end, bool use_snapshot) {
     std::string en_start,en_end;
     rocksdb::Iterator* it = nullptr;
@@ -1086,8 +1076,6 @@ Status Nemo::ListRawScanSave(const std::string path,const std::string &start, co
       read_options.snapshot = list_db_->GetSnapshot();
     read_options.fill_cache = false;
     it = list_db_->NewIterator(read_options);
-
-    std::string raw_key;
     it->Seek(en_start);
 
     if(!it->Valid()){
@@ -1102,17 +1090,16 @@ Status Nemo::ListRawScanSave(const std::string path,const std::string &start, co
     }
 
     for(int i=0;it->Valid();it->Next(),i++){
-        raw_key.clear();
-        raw_key.append(it->key().data(),it->key().size());
-        if(!en_end.empty()){
-          if(raw_key > en_end){
+        rocksdb::Slice iKey = it->key();
+        if(!end.empty()){
+          if(iKey.compare(en_end) >=0){
             break;
           }
         }         
-        if(raw_key[0]!= DataType::kLMeta ){
+        if(iKey[0]!= DataType::kLMeta ){
           break;
         }
-        s = f.Add(it->key(),(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
+        s = f.Add(iKey,(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
         if(!s.ok()){
           if(use_snapshot)          
             list_db_->ReleaseSnapshot(read_options.snapshot);   
@@ -1120,33 +1107,29 @@ Status Nemo::ListRawScanSave(const std::string path,const std::string &start, co
           return s;
         }
         sort_key = new std::string;
-        sort_key->append(1,it->key().size()-1);
-        sort_key->append(it->key().data()+1,it->key().size()-1);
+        sort_key->append(1,DataType::kList);
+        sort_key->append(1,iKey.size()-1);
+        sort_key->append(iKey.data()+1,iKey.size()-1);
         sort_key_set->push_back(sort_key);
     }
     delete it;
     std::sort(sort_key_set->begin(),sort_key_set->end(),lex_less);
-    std::string sub_start_key,sub_key;
     for(size_t i = 0;i< sort_key_set->size();i++)
     {
         rocksdb::Iterator* sub_it =nullptr;
-
-        sub_start_key.clear();
-        sub_start_key.append(1,DataType::kList);
-        sub_start_key.append((*sort_key_set)[i]->data(),(*sort_key_set)[i]->size());
-
+        rocksdb::Slice sub_key(*((*sort_key_set)[i]));
         sub_it = list_db_->NewIterator(read_options);
-        sub_it->Seek(sub_start_key);
+        sub_it->Seek(sub_key);
         while (sub_it->Valid()) {
-          if ((sub_it->key())[0] != DataType::kList) {
+          rocksdb::Slice iKey = sub_it->key();
+          if (iKey[0] != DataType::kList) {
               break;
           }
-          sub_key.clear();
-          sub_key.assign(sub_it->key().data(),sub_it->key().size()-sizeof(int64_t));
-          if(sub_key != sub_start_key) {
+          rocksdb::Slice entry_key(iKey.data(),iKey[1]+2);
+          if(sub_key != entry_key) {
             break;
           }
-          s = f.Add(sub_it->key(),(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
+          s = f.Add(iKey,(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
           if(!s.ok()){
             if(use_snapshot)
               list_db_->ReleaseSnapshot(read_options.snapshot);
@@ -1191,7 +1174,6 @@ Status Nemo::SetRawScanSave(const std::string path,const std::string &start, con
     read_options.fill_cache = false;
     it = set_db_->NewIterator(read_options);
 
-    std::string raw_key;
     it->Seek(en_start);
 
     if(!it->Valid()){
@@ -1206,17 +1188,16 @@ Status Nemo::SetRawScanSave(const std::string path,const std::string &start, con
     }
 
     for(int i=0;it->Valid();it->Next(),i++){
-        raw_key.clear();
-        raw_key.append(it->key().data(),it->key().size());
-        if(!en_end.empty()){
-          if(raw_key > en_end){
+        rocksdb::Slice iKey = it->key();
+        if(!end.empty()){
+          if(iKey.compare(en_end) >=0 ){
             break;
           }
         }         
-        if(raw_key[0]!= DataType::kSSize ){
+        if(iKey[0]!= DataType::kSSize ){
           break;
         }
-        s = f.Add(it->key(),(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
+        s = f.Add(iKey,(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
         if(!s.ok()){
           if(use_snapshot)          
             set_db_->ReleaseSnapshot(read_options.snapshot);   
@@ -1224,33 +1205,29 @@ Status Nemo::SetRawScanSave(const std::string path,const std::string &start, con
           return s;
         }
         sort_key = new std::string;
-        sort_key->append(1,it->key().size()-1);
-        sort_key->append(it->key().data()+1,it->key().size()-1);
+        sort_key->append(1,DataType::kSet);
+        sort_key->append(1,iKey.size()-1);
+        sort_key->append(iKey.data()+1,iKey.size()-1);
         sort_key_set->push_back(sort_key);
     }
     delete it;
     std::sort(sort_key_set->begin(),sort_key_set->end(),lex_less);
-    std::string sub_start_key,sub_key,member,meta_key;
     for(size_t i = 0;i< sort_key_set->size();i++)
     {
         rocksdb::Iterator* sub_it =nullptr; 
-        sub_start_key.clear();
-        sub_start_key.append(1,DataType::kSet);
-        sub_start_key.append((*sort_key_set)[i]->data(),(*sort_key_set)[i]->size());
-
-        meta_key.assign((*sort_key_set)[i]->data()+1,(*sort_key_set)[i]->size()-1);
-
+        rocksdb::Slice sub_key(*((*sort_key_set)[i]));
         sub_it = set_db_->NewIterator(read_options);
-        sub_it->Seek(sub_start_key);
+        sub_it->Seek(sub_key);
         while (sub_it->Valid()) {
-          if ((sub_it->key())[0] != DataType::kSet) {
+          rocksdb::Slice iKey = sub_it->key();
+          if (iKey[0] != DataType::kSet) {
               break;
           }
-          DecodeSetKey(sub_it->key(),&sub_key,&member);
-          if(sub_key != meta_key) {
+          rocksdb::Slice entry_key(iKey.data(),iKey[1]+2);
+          if(sub_key != entry_key) {
             break;
           }
-          s = f.Add(sub_it->key(),(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
+          s = f.Add(iKey,(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
           if(!s.ok()){
             if(use_snapshot)            
               set_db_->ReleaseSnapshot(read_options.snapshot);
@@ -1294,8 +1271,6 @@ Status Nemo::ZsetRawScanSave(const std::string path,const std::string &start, co
       read_options.snapshot = zset_db_->GetSnapshot();
     read_options.fill_cache = false;
     it = zset_db_->NewIterator(read_options);
-
-    std::string raw_key;
     it->Seek(en_start);
 
     if(!it->Valid()){
@@ -1310,17 +1285,16 @@ Status Nemo::ZsetRawScanSave(const std::string path,const std::string &start, co
     }
 
     for(int i=0;it->Valid();it->Next(),i++){
-        raw_key.clear();
-        raw_key.append(it->key().data(),it->key().size());
+        rocksdb::Slice iKey = it->key();
         if(!en_end.empty()){
-          if(raw_key > en_end){
+          if(iKey.compare(en_end) >= 0 ){
             break;
           }
         }         
-        if(raw_key[0]!= DataType::kZSize ){
+        if(iKey[0]!= DataType::kZSize ){
           break;
         }
-        s = f.Add(it->key(),(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
+        s = f.Add(iKey,(dynamic_cast<rocksdb::NemoIterator *>(it))->raw_value());
         if(!s.ok()){
           if(use_snapshot)          
             zset_db_->ReleaseSnapshot(read_options.snapshot);   
@@ -1334,28 +1308,26 @@ Status Nemo::ZsetRawScanSave(const std::string path,const std::string &start, co
     }
     delete it;
     std::sort(sort_key_set->begin(),sort_key_set->end(),lex_less);
-    std::string sub_start_key,sub_key,member,meta_key;
-    double score;
     for(size_t i = 0;i< sort_key_set->size();i++)
     {
         rocksdb::Iterator* sub_it =nullptr; 
-        sub_start_key.clear();
-        sub_start_key.append(1,DataType::kZScore);
-        sub_start_key.append((*sort_key_set)[i]->data(),(*sort_key_set)[i]->size());
-
-        meta_key.assign((*sort_key_set)[i]->data()+1,(*sort_key_set)[i]->size()-1);
-
+        rocksdb::Slice sub_key(*((*sort_key_set)[i]));
+        std::string sub_key_str;
+        sub_key_str.append(1,DataType::kZScore);
+        sub_key_str.append(sub_key.data(),sub_key.size());
+        rocksdb::Slice sub_key_p(sub_key_str);
         sub_it = zset_db_->NewIterator(read_options);
-        sub_it->Seek(sub_start_key);
+        sub_it->Seek(sub_key_p);
         while (sub_it->Valid()) {
-          if ((sub_it->key())[0] != DataType::kZScore) {
+          rocksdb::Slice iKey = sub_it->key();
+          if (iKey[0] != DataType::kZScore) {
               break;
           }
-          DecodeZScoreKey(sub_it->key(),&sub_key,&member,&score);
-          if(sub_key != meta_key) {
+          rocksdb::Slice entry_key(iKey.data(),iKey[1]+2);
+          if(sub_key_p != entry_key) {
             break;
           }
-          s = f.Add(sub_it->key(),(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
+          s = f.Add(iKey,(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
           if(!s.ok()){
             if(use_snapshot)
               zset_db_->ReleaseSnapshot(read_options.snapshot);
@@ -1369,24 +1341,24 @@ Status Nemo::ZsetRawScanSave(const std::string path,const std::string &start, co
 
     for(size_t i = 0;i< sort_key_set->size();i++)
     {
-        rocksdb::Iterator* sub_it =nullptr; 
-        sub_start_key.clear();
-        sub_start_key.append(1,DataType::kZSet);
-        sub_start_key.append((*sort_key_set)[i]->data(),(*sort_key_set)[i]->size());
-
-        meta_key.assign((*sort_key_set)[i]->data()+1,(*sort_key_set)[i]->size()-1);
-
+        rocksdb::Iterator* sub_it =nullptr;
+        rocksdb::Slice sub_key(*((*sort_key_set)[i]));
+        std::string sub_key_str;
+        sub_key_str.append(1,DataType::kZSet);
+        sub_key_str.append(sub_key.data(),sub_key.size());
+        rocksdb::Slice sub_key_p(sub_key_str);        
         sub_it = zset_db_->NewIterator(read_options);
-        sub_it->Seek(sub_start_key);
+        sub_it->Seek(sub_key_p);
         while (sub_it->Valid()) {
-          if ((sub_it->key())[0] != DataType::kZSet) {
+          rocksdb::Slice iKey = sub_it->key();          
+          if (iKey[0] != DataType::kZSet) {
               break;
           }
-          DecodeZSetKey(sub_it->key(),&sub_key,&member);
-          if(sub_key != meta_key) {
+          rocksdb::Slice entry_key(iKey.data(),iKey[1]+2);
+          if(entry_key != sub_key_p) {
             break;
           }
-          s = f.Add(sub_it->key(),(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
+          s = f.Add(iKey,(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
           if(!s.ok()){
             if(use_snapshot)
               zset_db_->ReleaseSnapshot(read_options.snapshot);
@@ -1405,7 +1377,7 @@ Status Nemo::ZsetRawScanSave(const std::string path,const std::string &start, co
     s = f.Finish();
     return s;
 }
-
+/*
 void Nemo::ZsetRawScan(const std::string path,const std::string &start, const std::string &end, bool use_snapshot) {
     std::string en_start,en_end;
     rocksdb::Iterator* it = nullptr;
@@ -1507,7 +1479,7 @@ void Nemo::ZsetRawScan(const std::string path,const std::string &start, const st
     zset_db_->ReleaseSnapshot(read_options.snapshot);
     delete sort_key_set;
 }
-
+*/
 Status Nemo::RawScanSaveAll(const std::string path,const std::string &start, const std::string &end, bool use_snapshot)
 {
   Status s;

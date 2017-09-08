@@ -406,7 +406,7 @@ extern nemo_VolumeIterator_t * createVolumeIterator(nemo_t * nemo,
 								bool use_snapshot);
 extern void VolNext(nemo_VolumeIterator_t * it);
 extern bool VolValid(nemo_VolumeIterator_t * it);
-extern void Volkey(nemo_VolumeIterator_t * it,char ** key ,size_t* keylen);
+extern const char* Volkey(nemo_VolumeIterator_t * it, size_t* keylen);
 extern void Volvalue(nemo_VolumeIterator_t * it,int64_t * value);
 extern bool VoltargetScan(nemo_VolumeIterator_t * it,int64_t target);
 extern int64_t VoltotalVolume(nemo_VolumeIterator_t * it);
