@@ -75,6 +75,8 @@ enum  {
 
 void nemoStrFree(nemoStr * str);
 
+extern void nemo_delCppStr(void * p);
+
 extern nemo_t * nemo_Create(const char * db_path,const nemo_options_t * options);
 
 extern nemo_options_t * nemo_CreateOption();
@@ -109,7 +111,7 @@ extern void nemo_Exists(nemo_t * nemo,const int num, const char ** key_list,cons
 // =================KV=====================
 extern void nemo_Set(nemo_t * nemo,const char * key, const size_t keylen, const char * val, const size_t vallen, int32_t ttl, char ** errptr);
 
-extern void nemo_Get(nemo_t * nemo,const char * key, const size_t keylen, const char ** val,size_t * vallen, char ** errptr);
+extern void * nemo_Get(nemo_t * nemo,const char * key, const size_t keylen, const char ** val,size_t * vallen, char ** errptr);
 extern void nemo_Get0(nemo_t * nemo,const char * key, const size_t keylen, nemoStr * value, char ** errptr);
 
 extern void nemo_MSet(nemo_t * nemo, int const num,const char ** key, size_t * keylen, \

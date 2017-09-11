@@ -59,6 +59,11 @@ extern "C"	{
 		delete (std::string *) s->str;
 	}
 
+	void nemo_delCppStr(void * p)
+	{
+		delete ((std::string *) p);
+	}
+
 //	struct nemo_MetaPtr { MetaPtr rep};
 #ifdef __GO_WRAPPER__
 	static char* CopyString(const std::string& str) {
@@ -198,25 +203,28 @@ extern "C"	{
 		value->data = res_value->data();
 		value->len  = res_value->size();
 	}
-	void nemo_Get(nemo_t * nemo,const char * key, const size_t keylen, const char ** val,size_t * vallen, char ** errptr){
-		std::string  res_value;
-		Status s = nemo->rep->Get(std::string(key,keylen),&res_value);
+	void * nemo_Get(nemo_t * nemo,const char * key, const size_t keylen, const char ** val,size_t * vallen, char ** errptr){
+		std::string  * res_value = new std::string();
+		Status s = nemo->rep->Get(std::string(key,keylen),res_value);
 
 		if(s.ok())
 		{
 			*errptr = nullptr;
-			*val = CopyString(res_value) ;
-			*vallen  = res_value.size();
+			*val = res_value->data();
+			*vallen  = res_value->size();
+			return res_value;
 		}
 		else if (s.IsNotFound())
 		{
 			*errptr = nullptr;
 			*val = nullptr ;
-			*vallen  = 0;			
+			*vallen  = 0;
+			return nullptr;
 		}
 		else
 		{
 			*errptr = strdup(s.ToString().c_str());
+			return nullptr;
 		}
 
 	}
