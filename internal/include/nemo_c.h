@@ -42,16 +42,6 @@ typedef struct{
     int max_bytes_for_level_multiplier;	
 } GoNemoOpts;
 
-//c style string structure as return value type of C API function
-//member str point to a c++ string object which is dynamic allocate,
-//it must be explicit released by member str point
-// cstyle string structure, as input agument type f C API function 
-typedef struct{
-  const char *  data;
-  size_t        len;
-  void       *  str;
-} nemoStr;
-
 enum  {
   kNONE_DB = 0,
   kKV_DB,
@@ -73,9 +63,9 @@ enum  {
   MAX
 };
 
-void nemoStrFree(nemoStr * str);
-
 extern void nemo_delCppStr(void * p);
+
+extern void nemo_delSSVector(void * p);
 
 extern nemo_t * nemo_Create(const char * db_path,const nemo_options_t * options);
 
@@ -112,13 +102,12 @@ extern void nemo_Exists(nemo_t * nemo,const int num, const char ** key_list,cons
 extern void nemo_Set(nemo_t * nemo,const char * key, const size_t keylen, const char * val, const size_t vallen, int32_t ttl, char ** errptr);
 
 extern void * nemo_Get(nemo_t * nemo,const char * key, const size_t keylen, const char ** val,size_t * vallen, char ** errptr);
-extern void nemo_Get0(nemo_t * nemo,const char * key, const size_t keylen, nemoStr * value, char ** errptr);
 
 extern void nemo_MSet(nemo_t * nemo, int const num,const char ** key, size_t * keylen, \
                                                    const char ** val, size_t * vallen, char ** errptr);
 
-extern void nemo_MGet(nemo_t * nemo,  const int num, const char ** key, size_t * keylen, \
-	 		             		                                     char ** val, size_t * vallen, char ** errs);
+extern void * nemo_MGet(nemo_t * nemo,  const int num, const char ** key, size_t * keylen, \
+													   const char ** val, size_t * vallen, char ** errs);
 extern nemo_KIterator_t  * nemo_KScan(nemo_t *nemo, const char * start,const size_t startlen, 
 								const char * end, const size_t endlen, uint64_t limit,bool use_snapshot);					
 extern void KNext(nemo_KIterator_t * it);
@@ -198,10 +187,11 @@ extern void nemo_HGetall(nemo_t * nemo,const char * key, const size_t keylen,int
 extern void nemo_HLen(nemo_t * nemo,const char * key,const size_t keylen,int64_t * len,char ** errptr);
 
 extern void nemo_HMSet(nemo_t * nemo,const char * key, const size_t keylen,const int num, const char ** field_list,const size_t * field_list_len, \
-                                   const char ** value_list,const size_t * value_list_len, int * res_list, char ** errptr);
+                                     const char ** value_list,const size_t * value_list_len, int * res_list, char ** errptr);
 
-extern void nemo_HMGet(nemo_t * nemo,const char * key, const size_t keylen,const int num, const char ** field_list,const size_t * field_list_len, \
-                                   char ** value_list,size_t * value_list_strlen, char ** errs,char ** errptr); 
+extern void * nemo_HMGet(nemo_t * nemo, const char * key,const size_t keylen, const int num,		\
+									    const char ** field_list,const size_t * field_list_len,	\
+	 									const char ** value_list,size_t * value_list_strlen, char ** errs,char ** errptr); 
 
 extern void nemo_HSetnx(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,const char * value, const size_t vallen,int64_t * res, char ** errptr);
 
@@ -383,9 +373,9 @@ extern void nemo_PutWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,
 								const char * key, const size_t keylen, 
 								const char * value ,const size_t vallen,
 								char ** errptr);
-extern void nemo_GetWithHandle(nemo_t * nemo,nemo_DBNemo_t * db, 
+extern void * nemo_GetWithHandle(nemo_t * nemo,nemo_DBNemo_t * db, 
 								const char * key, const size_t keylen, 
-								char ** value ,size_t* vallen,
+								const char ** value ,size_t* vallen,
 								char ** errptr);                
 
 extern void nemo_DeleteWithHandle(nemo_t * nemo,nemo_DBNemo_t * db, 

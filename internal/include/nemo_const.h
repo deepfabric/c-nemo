@@ -68,15 +68,26 @@ struct KV {
     std::string key;
     std::string val;
 };
+struct KVSlice {
+    rocksdb::Slice key;
+    rocksdb::Slice val;
+};
 struct KVS {
     std::string key;
     std::string val;
     rocksdb::Status status;
 };
-
+struct SS {
+    std::string *   val;
+    rocksdb::Status status;
+};
 struct FV {
     std::string field;
     std::string val;
+};
+struct FVSlice {
+    rocksdb::Slice field;
+    rocksdb::Slice val;
 };
 struct FVS {
     std::string field;

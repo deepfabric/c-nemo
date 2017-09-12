@@ -96,11 +96,13 @@ public:
     Status Exists(const std::vector<std::string> &key, int64_t* res);
 
     // =================KV=====================
-    Status Set(const std::string &key, const std::string &val, const int32_t ttl = 0);
-    Status Get(const std::string &key, std::string *val);
+    Status Set(const rocksdb::Slice &key, const rocksdb::Slice &val, const int32_t ttl);
+    Status Get(const rocksdb::Slice &key, std::string *val);
     Status MSet(const std::vector<KV> &kvs);
+    Status MSetSlice(const std::vector<KVSlice> &kvs);
     Status KMDel(const std::vector<std::string> &keys, int64_t* count);
     Status MGet(const std::vector<std::string> &keys, std::vector<KVS> &kvss);
+    Status MGetSlice(const std::vector<rocksdb::Slice> &keys, std::vector<SS> &vs);
     Status Incrby(const std::string &key, const int64_t by, std::string &new_val);
     Status Decrby(const std::string &key, const int64_t by, std::string &new_val);
     Status Incrbyfloat(const std::string &key, const double by, std::string &new_val);
@@ -133,16 +135,18 @@ public:
     Status SetWithExpireAt(const std::string &key, const std::string &val, const int32_t timestamp = 0);
 
     // ==============HASH=====================
-    Status HSet(const std::string &key, const std::string &field, const std::string &val, int * res);
-    Status HGet(const std::string &key, const std::string &field, std::string *val);
-    Status HDel(const std::string &key, const std::string &field);
+    Status HSet(const rocksdb::Slice &key, const rocksdb::Slice &field, const rocksdb::Slice &val, int * res);
+    Status HGet(const rocksdb::Slice &key, const rocksdb::Slice &field, std::string *val);
+    Status HDel(const rocksdb::Slice &key, const rocksdb::Slice &field);
     Status HMDel(const std::string &key, const std::vector<std::string> &fields, int64_t * res);
     Status HExists(const std::string &key, const std::string &field, bool * ifExist);    
     Status HKeys(const std::string &key, std::vector<std::string> &keys);
     Status HGetall(const std::string &key, std::vector<FV> &fvs);
-    Status HLen(const std::string &key,int64_t * len);
-    Status HMSet(const std::string &key, const std::vector<FV> &fvs,int * res_list);
+    Status HLen(const rocksdb::Slice &key,int64_t * len);
+    Status HMSet(const std::string &key, const std::vector<FV> &fvs,int * res_list );
+    Status HMSetSlice(const rocksdb::Slice &key, const std::vector<FVSlice> &fvs,int * res_list);
     Status HMGet(const std::string &key, const std::vector<std::string> &keys, std::vector<FVS> &fvss);
+    Status HMGetSlice(const rocksdb::Slice &key, const std::vector<rocksdb::Slice> &fields, std::vector<SS> &ss);
     Status HSetnx(const std::string &key, const std::string &field, const std::string &val, int64_t * res);    
     Status HStrlen(const std::string &key, const std::string &field, int64_t * res_len);
     HIterator* HScan(const std::string &key, const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot = false);
@@ -150,8 +154,8 @@ public:
     Status HIncrby(const std::string &key, const std::string &field, int64_t by, std::string &new_val);
     Status HIncrbyfloat(const std::string &key, const std::string &field, double by, std::string &new_val);
     HmetaIterator * HmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot );
-    bool HSize(const std::string &key, HashMeta & meta);
-    int IncrHSize(const std::string &key, int64_t incrlen ,int64_t incrvol, rocksdb::WriteBatch &writebatch);
+    bool HSize(const rocksdb::Slice &key, HashMeta & meta);
+    int IncrHSize(const rocksdb::Slice &key, int64_t incrlen ,int64_t incrvol, rocksdb::WriteBatch &writebatch);
 
     // ==============List=====================
     Status LIndex(const std::string &key, const int64_t index, std::string *val);
@@ -245,17 +249,17 @@ public:
         return db->Write(rocksdb::WriteOptions(),wb,0);
     }
 
-    Status GetWithHandle(rocksdb::DBNemo* db,const std::string & key,std::string * value )
+    Status GetWithHandle(rocksdb::DBNemo* db,const rocksdb::Slice & key,std::string * value )
     {
         return db->Get(rocksdb::ReadOptions(),key,value);
     }
 
-    Status PutWithHandle(rocksdb::DBNemo* db,const std::string & key,const std::string & value )
+    Status PutWithHandle(rocksdb::DBNemo* db,const rocksdb::Slice & key,const rocksdb::Slice & value )
     {
         return db->Put(rocksdb::WriteOptions(),key,value);
     }
 
-    Status DeleteWithHandle(rocksdb::DBNemo* db,const std::string & key)
+    Status DeleteWithHandle(rocksdb::DBNemo* db,const rocksdb::Slice & key)
     {
         return db->Delete(rocksdb::WriteOptions(),key);
     }
@@ -393,10 +397,10 @@ private:
     int64_t StoreAndGetCursor(int64_t cursor, const std::string& next_key);
     Status SeekCursor(int64_t cursor, std::string* start_key);
 
-    int DoHSet(const std::string &key, const std::string &field, const std::string &val, rocksdb::WriteBatch &writebatch);
-    int64_t DoHDel(const std::string &key, const std::string &field, rocksdb::WriteBatch &writebatch);
+    int DoHSet(const rocksdb::Slice &key, const rocksdb::Slice &field, const rocksdb::Slice val, rocksdb::WriteBatch &writebatch);       
+    int64_t DoHDel(const rocksdb::Slice &key, const rocksdb::Slice &field, rocksdb::WriteBatch &writebatch);
     Status HSetNoLock(const std::string &key, const std::string &field, const std::string &val);
-    int IncrHLen(const std::string &key, int64_t incr, rocksdb::WriteBatch &writebatch);
+    int IncrHLen(const rocksdb::Slice &key, int64_t incr, rocksdb::WriteBatch &writebatch);
 
     Status ZAddNoLock(const std::string &key, const double score, const std::string &member, int64_t *res);
     Status ZRemrangebyrankNoLock(const std::string &key, const int64_t start, const int64_t stop, int64_t* count);

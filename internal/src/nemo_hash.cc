@@ -68,14 +68,14 @@ Status Nemo::HChecknRecover(const std::string& key) {
   return hash_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &(writebatch));
 }
 
-Status Nemo::HSet(const std::string &key, const std::string &field, const std::string &val, int * res) {
+Status Nemo::HSet(const rocksdb::Slice &key, const rocksdb::Slice &field, const rocksdb::Slice &val, int * res) {
     if (key.size() >= KEY_MAX_LENGTH || key.size() <= 0) {
        return Status::InvalidArgument("Invalid key length");
     }
 
     Status s;
 
-    RecordLock l(&mutex_hash_record_, key);
+    //RecordLock l(&mutex_hash_record_, key);
     //MutexLock l(&mutex_hash_);
     rocksdb::WriteBatch writebatch;
 
@@ -110,7 +110,7 @@ Status Nemo::HSetNoLock(const std::string &key, const std::string &field, const 
     return s;
 }
 
-Status Nemo::HGet(const std::string &key, const std::string &field, std::string *val) {
+Status Nemo::HGet(const rocksdb::Slice &key, const rocksdb::Slice &field, std::string *val) {
     if (key.size() >= KEY_MAX_LENGTH || key.size() <= 0) {
        return Status::InvalidArgument("Invalid key length");
     }
@@ -120,13 +120,13 @@ Status Nemo::HGet(const std::string &key, const std::string &field, std::string 
     return s;
 }
 
-Status Nemo::HDel(const std::string &key, const std::string &field) {
+Status Nemo::HDel(const rocksdb::Slice &key, const rocksdb::Slice &field) {
     if (key.size() >= KEY_MAX_LENGTH || key.size() <= 0) {
        return Status::InvalidArgument("Invalid key length");
     }
 
     Status s;
-    RecordLock l(&mutex_hash_record_, key);
+    //RecordLock l(&mutex_hash_record_, key);
     rocksdb::WriteBatch writebatch;
     int64_t ret = DoHDel(key, field, writebatch);
     if (ret > 0) {
@@ -359,7 +359,7 @@ Status Nemo::HKeys(const std::string &key, std::vector<std::string> &fields) {
     return Status::OK();
 }
 
-Status Nemo::HLen(const std::string &key,int64_t * len) {
+Status Nemo::HLen(const rocksdb::Slice &key,int64_t * len) {
     HashMeta meta;
     if(HSize(key,meta)){
         *len = meta.len;
@@ -371,7 +371,7 @@ Status Nemo::HLen(const std::string &key,int64_t * len) {
     }  
 }
 
-bool Nemo::HSize(const std::string &key, HashMeta & meta) {
+bool Nemo::HSize(const rocksdb::Slice &key, HashMeta & meta) {
     std::string size_key = EncodeHsizeKey(key);
     std::string val;
     Status s;
@@ -439,6 +439,20 @@ Status Nemo::HMSet(const std::string &key, const std::vector<FV> &fvs,int * res_
     return s;
 }
 
+Status Nemo::HMSetSlice(const rocksdb::Slice &key, const std::vector<FVSlice> &fvs,int * res_list) {
+    if (key.size() >= KEY_MAX_LENGTH || key.size() <= 0) {
+       return Status::InvalidArgument("Invalid key length");
+    }
+    Status s;
+    int res;
+    std::vector<FVSlice>::const_iterator it;
+    for (it = fvs.begin(); it != fvs.end(); it++,res_list++) {
+        HSet(key, it->field, it->val, &res);
+        *res_list = res;
+    }
+    return s;
+}
+
 Status Nemo::HMGet(const std::string &key, const std::vector<std::string> &fields, std::vector<FVS> &fvss) {
     Status s;
     std::vector<std::string>::const_iterator it_key;
@@ -447,6 +461,17 @@ Status Nemo::HMGet(const std::string &key, const std::vector<std::string> &field
         std::string val("");
         s = hash_db_->Get(rocksdb::ReadOptions(), en_key, &val);
         fvss.push_back((FVS){*(it_key), val, s});
+    }
+    return Status::OK();
+}
+
+Status Nemo::HMGetSlice(const rocksdb::Slice &key, const std::vector<rocksdb::Slice> &fields, std::vector<SS> &ss) {
+    Status s;
+    for (size_t i = 0; i < fields.size(); i++) {
+        std::string en_key = EncodeHashKey(key, fields[i]);
+        std::string * val = new std::string;
+        s = hash_db_->Get(rocksdb::ReadOptions(), en_key, val);
+        ss[i] = SS{val,s};
     }
     return Status::OK();
 }
@@ -633,7 +658,7 @@ Status Nemo::HIncrbyfloat(const std::string &key, const std::string &field, doub
 }
 
 
-int Nemo::DoHSet(const std::string &key, const std::string &field, const std::string &val, rocksdb::WriteBatch &writebatch) {
+int Nemo::DoHSet(const rocksdb::Slice &key, const rocksdb::Slice &field, const rocksdb::Slice val, rocksdb::WriteBatch &writebatch) {
     int ret = 0;
     std::string dbval;
     Status s = HGet(key, field, &dbval);
@@ -651,7 +676,7 @@ int Nemo::DoHSet(const std::string &key, const std::string &field, const std::st
     return ret;
 }
 
-int64_t Nemo::DoHDel(const std::string &key, const std::string &field, rocksdb::WriteBatch &writebatch) {
+int64_t Nemo::DoHDel(const rocksdb::Slice &key, const rocksdb::Slice &field, rocksdb::WriteBatch &writebatch) {
     int64_t ret = 0;
     std::string dbval;
     Status s = HGet(key, field, &dbval);
@@ -667,7 +692,7 @@ int64_t Nemo::DoHDel(const std::string &key, const std::string &field, rocksdb::
     return ret;
 }
 
-int Nemo::IncrHLen(const std::string &key, int64_t incr, rocksdb::WriteBatch &writebatch) {
+int Nemo::IncrHLen(const rocksdb::Slice &key, int64_t incr, rocksdb::WriteBatch &writebatch) {
     int64_t len = 0;
     Status s = HLen(key,&len);
     if (!s.ok()) {
@@ -687,7 +712,7 @@ int Nemo::IncrHLen(const std::string &key, int64_t incr, rocksdb::WriteBatch &wr
 }
 
 
-int Nemo::IncrHSize(const std::string &key, int64_t incrlen ,int64_t incrvol, rocksdb::WriteBatch &writebatch) {
+int Nemo::IncrHSize(const rocksdb::Slice &key, int64_t incrlen ,int64_t incrvol, rocksdb::WriteBatch &writebatch) {
     HashMeta meta;
     if(!HSize(key,meta)){
         return -1;
@@ -700,5 +725,3 @@ int Nemo::IncrHSize(const std::string &key, int64_t incrlen ,int64_t incrvol, ro
     writebatch.Put(size_key, meta_val);
     return 0;
 }
-
-

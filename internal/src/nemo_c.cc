@@ -29,8 +29,11 @@ using nemo::ZIterator;
 using nemo::SIterator;
 using nemo::KV;
 using nemo::KVS;
+using nemo::KVSlice;
+using nemo::SS;
 using nemo::FV;
 using nemo::FVS;
+using nemo::FVSlice;
 using nemo::IV;
 using nemo::SM;
 using nemo::BitOpType;
@@ -55,13 +58,18 @@ extern "C"	{
 	struct nemo_DBNemo_t {rocksdb::DBNemo * rep;};
 	struct nemo_WriteBatch_t { rocksdb::WriteBatch rep;};
 
-	void nemoStrFree(nemoStr * s){
-		delete (std::string *) s->str;
-	}
-
 	void nemo_delCppStr(void * p)
 	{
 		delete ((std::string *) p);
+	}
+
+	void nemo_delSSVector(void * p)
+	{
+		std::vector<SS> * ssp = (std::vector<SS> *) p;
+		for(size_t i=0;i<(*ssp).size();i++){
+			delete (*ssp)[i].val;
+		}
+		delete ssp;
 	}
 
 //	struct nemo_MetaPtr { MetaPtr rep};
@@ -193,68 +201,59 @@ extern "C"	{
 
 	// =================KV=====================
 	void nemo_Set(nemo_t * nemo,const char * key, const size_t keylen, const char * val, const size_t vallen, int32_t ttl, char ** errptr){
-		nemo_SaveError(errptr,nemo->rep->Set(std::string(key,keylen),std::string(val,vallen),ttl));
+		nemo_SaveError(errptr,nemo->rep->Set(rocksdb::Slice(key,keylen),rocksdb::Slice(val,vallen),ttl));
 	}
 
-	void nemo_Get0(nemo_t * nemo,const char * key, const size_t keylen, nemoStr * value, char ** errptr){
-		std::string * res_value = new std::string();
-		nemo_SaveError(errptr,nemo->rep->Get(std::string(key,keylen),res_value));
-		value->str  = res_value;
-		value->data = res_value->data();
-		value->len  = res_value->size();
-	}
 	void * nemo_Get(nemo_t * nemo,const char * key, const size_t keylen, const char ** val,size_t * vallen, char ** errptr){
 		std::string  * res_value = new std::string();
-		Status s = nemo->rep->Get(std::string(key,keylen),res_value);
+		Status s = nemo->rep->Get(rocksdb::Slice(key,keylen),res_value);
 
 		if(s.ok())
 		{
 			*errptr = nullptr;
 			*val = res_value->data();
 			*vallen  = res_value->size();
-			return res_value;
 		}
 		else if (s.IsNotFound())
 		{
 			*errptr = nullptr;
 			*val = nullptr ;
 			*vallen  = 0;
-			return nullptr;
 		}
 		else
 		{
 			*errptr = strdup(s.ToString().c_str());
-			return nullptr;
 		}
-
+		return res_value;
 	}
 
 	void nemo_MSet(nemo_t * nemo, const int  num,const char ** key,size_t * keylen,const char ** value,size_t * valuelen, char ** errptr){
-		std::vector<KV> kv(num);
+		std::vector<KVSlice> kv(num);
 		for(int i=0;i<num;i++){
-			kv[i].key = std::string(key[i],keylen[i]);
-			kv[i].val = std::string(value[i],valuelen[i]);
+			kv[i].key = rocksdb::Slice(key[i],keylen[i]);
+			kv[i].val = rocksdb::Slice(value[i],valuelen[i]);
 		}
-		nemo_SaveError(errptr,nemo->rep->MSet(kv));
+		nemo_SaveError(errptr,nemo->rep->MSetSlice(kv));
 	}
 
-	void nemo_MGet(nemo_t * nemo,  const int num, const char ** key, size_t * keylen, \
-	 		             		                        char ** val, size_t * vallen, char ** errs){
-		std::vector<std::string> keys(num);
+	void * nemo_MGet(nemo_t * nemo,  const int num, const char ** key, size_t * keylen, \
+	 		             		                    const char ** val, size_t * vallen, char ** errs){
+		std::vector<rocksdb::Slice> keys(num);
 		for(int i=0;i<num;i++){
-			keys[i] = std::string(key[i],keylen[i]);		}
+			keys[i] = rocksdb::Slice(key[i],keylen[i]);
+		}
 		
-		std::vector<KVS> kvss;
+		std::vector<SS> * vsp = new std::vector<SS>(num);
 		char * nemo_res;
-		nemo_SaveError(&nemo_res,nemo->rep->MGet(keys,kvss));
+		nemo_SaveError(&nemo_res,nemo->rep->MGetSlice(keys,*vsp));
 		
 		for(int i=0;i<num;i++){
-			if(kvss[i].status.ok()){
-				val[i]   = CopyString(kvss[i].val);
-				vallen[i] = kvss[i].val.size();
-				errs[i] = NULL;				
+			if((*vsp)[i].status.ok()){
+				val[i]   = (*vsp)[i].val->data();
+				vallen[i] = (*vsp)[i].val->size();
+				errs[i] = NULL;
 			}
-			else if(kvss[i].status.IsNotFound())
+			else if((*vsp)[i].status.IsNotFound())
 			{
 				val[i]   = nullptr;
 				vallen[i] = 0;
@@ -263,11 +262,12 @@ extern "C"	{
 			else {
 				val[i] = NULL;
 				vallen[i] = 0;
-				errs[i] = strdup(kvss[i].status.ToString().c_str());
+				errs[i] = strdup((*vsp)[i].status.ToString().c_str());
 			}
 		}
+		return (void *)vsp;
 	}
-
+	
 	void nemo_Keys(nemo_t * nemo,  char * pattern, const size_t patternlen, int * key_num, \
 					char *** key_list, size_t ** key_list_strlen , char ** errptr){
 			std::vector<std::string> keys;
@@ -523,11 +523,11 @@ extern "C"	{
 	// ==============HASH=====================
 	void nemo_HSet(nemo_t * nemo,const char * key,const size_t keylen,
 							     const char * field,const size_t fieldlen,const char * value,const size_t vallen, int * res, char ** errptr){
-		nemo_SaveError(errptr,nemo->rep->HSet(std::string(key,keylen),std::string(field,fieldlen),std::string(value,vallen),res));
+		nemo_SaveError(errptr,nemo->rep->HSet(rocksdb::Slice(key,keylen),std::string(field,fieldlen),std::string(value,vallen),res));
 	}
 	void nemo_HGet(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,char ** value, size_t * value_len , char ** errptr){
 		std::string val_str;
-		Status s = nemo->rep->HGet(std::string(key,keylen),std::string(field,fieldlen),&val_str);
+		Status s = nemo->rep->HGet(rocksdb::Slice(key,keylen),rocksdb::Slice(field,fieldlen),&val_str);
 		if(s.ok())
 		{
 			*errptr = nullptr;
@@ -547,7 +547,7 @@ extern "C"	{
 
 	}
 	void nemo_HDel(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen, char ** errptr){
-		nemo_SaveError(errptr,nemo->rep->HDel(std::string(key,keylen),std::string(field,fieldlen)));
+		nemo_SaveError(errptr,nemo->rep->HDel(rocksdb::Slice(key,keylen),std::string(field,fieldlen)));
 	}
 	void nemo_HMDel(nemo_t * nemo,const char * key,const size_t keylen,int num,const char ** fieldlist,const size_t * fieldlen, int64_t * res,char ** errptr){
 		std::vector<std::string>fields(num);
@@ -619,39 +619,41 @@ extern "C"	{
 
 	void nemo_HMSet(nemo_t * nemo,const char * key,const size_t keylen, const int num, const char ** field_list,const size_t * field_list_len,	\
 								       const char ** value_list,const size_t * value_list_len, int * res_list, char ** errptr){
-		std::vector<FV> fv(num);
+		std::vector<FVSlice> fv(num);
 		for (int i = 0; i < num; ++i)
 		{
-			fv[i].field = std::string(field_list[i],field_list_len[i]);
-			fv[i].val = std::string(value_list[i],value_list_len[i]);/* code */
+			fv[i].field = rocksdb::Slice(field_list[i],field_list_len[i]);
+			fv[i].val = rocksdb::Slice(value_list[i],value_list_len[i]);/* code */
 		}
-		nemo_SaveError(errptr,nemo->rep->HMSet(std::string(key,keylen),fv,res_list));
+		nemo_SaveError(errptr,nemo->rep->HMSetSlice(rocksdb::Slice(key,keylen),fv,res_list));
 	}
-   	void nemo_HMGet(nemo_t * nemo,const char * key,const size_t keylen, const int num, const char ** field_list,const size_t * field_list_len,	\
-					 			             char ** value_list,size_t * value_list_strlen, char ** errs,char ** errptr){
-		std::vector<FVS> fvs;
-		std::vector<std::string> keys(num);
+	   void * nemo_HMGet(nemo_t * nemo,const char * key,const size_t keylen, const int num,		\
+									 const char ** field_list,const size_t * field_list_len,	\
+					 			     const char ** value_list,size_t * value_list_strlen, char ** errs,char ** errptr){
+		std::vector<SS> *ss = new std::vector<SS>(num);
+		std::vector<rocksdb::Slice> keys(num);
 		for (int i = 0; i < num; ++i)
 		{
-			keys[i] = std::string(field_list[i],field_list_len[i]);/* code */
+			keys[i] = rocksdb::Slice(field_list[i],field_list_len[i]);/* code */
 		}
-		nemo_SaveError(errptr,nemo->rep->HMGet(std::string(key,keylen),keys,fvs));
+		nemo_SaveError(errptr,nemo->rep->HMGetSlice(rocksdb::Slice(key,keylen),keys,*ss));
 		for (int i = 0; i < num; ++i)
 		{
-			if(fvs[i].status.ok()){
-				value_list[i] = CopyString(fvs[i].val);
-				value_list_strlen[i] = fvs[i].val.size(); 
+			if((*ss)[i].status.ok()){
+				value_list[i] = (*ss)[i].val->data();
+				value_list_strlen[i] = (*ss)[i].val->size(); 
 				errs[i] = nullptr;				
 			}
-			else if(fvs[i].status.IsNotFound()){
+			else if((*ss)[i].status.IsNotFound()){
 				value_list[i] = nullptr;
 				value_list_strlen[i] = 0; 
 				errs[i] = nullptr;					
 			}
 			else{
-				errs[i] = strdup(fvs[i].status.ToString().c_str());
+				errs[i] = strdup((*ss)[i].status.ToString().c_str());
 			}
 		}
+		return (void *) ss;
 	}
 
 	void nemo_HSetnx(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,const char * value,const size_t vallen, int64_t * res, char ** errptr){
@@ -1491,13 +1493,13 @@ extern "C"	{
 	void rocksdb_WriteBatch_Put(nemo_WriteBatch_t * nwb, const char * key, const size_t keylen, 
 												 const char * value ,const size_t vallen )
 	{
-		std::string keystr(key,keylen);
-		std::string valstr(value,vallen);
+		rocksdb::Slice keystr(key,keylen);
+		rocksdb::Slice valstr(value,vallen);
 		nwb->rep.Put(keystr,valstr);
 	}
 	void rocksdb_WriteBatch_Del(nemo_WriteBatch_t * nwb,  const char * key, const size_t keylen)
 	{
-		std::string keystr(key,keylen);
+		rocksdb::Slice keystr(key,keylen);
 		nwb->rep.Delete(keystr);
 	}
 	void rocksdb_BatchWrite(nemo_t * nemo,nemo_DBNemo_t * db,nemo_WriteBatch_t * nwb,char ** errptr)
@@ -1511,45 +1513,46 @@ extern "C"	{
 								const char * value ,const size_t vallen,
 								char ** errptr)
 	{
-		std::string keystr(key,keylen);
-		std::string valstr(value,vallen);
+		rocksdb::Slice keystr(key,keylen);
+		rocksdb::Slice valstr(value,vallen);
 		nemo_SaveError(errptr,nemo->rep->PutWithHandle(db->rep,keystr,valstr));
 	}
 
-	void nemo_GetWithHandle(nemo_t * nemo,nemo_DBNemo_t * db, 
+	void * nemo_GetWithHandle(nemo_t * nemo,nemo_DBNemo_t * db, 
 								const char * key, const size_t keylen, 
-								char ** value ,size_t* vallen,
+								const char ** value ,size_t* vallen,
 								char ** errptr)
 	{
-		std::string keystr(key,keylen);
-		std::string valstr;		
-		Status s = nemo->rep->GetWithHandle(db->rep,keystr,&valstr);
+		rocksdb::Slice keystr(key,keylen);
+		std::string * valstr = new std::string();
+		Status s = nemo->rep->GetWithHandle(db->rep,keystr,valstr);
 
 		if(s.ok())
 		{
 			*errptr = nullptr;
-			*value = CopyString(valstr);
-			*vallen  = valstr.size();	
+			*value = valstr->data();
+			*vallen  = valstr->size();
 		}
 		else if (s.IsNotFound())
 		{
 			*errptr = nullptr;
-			*value = nullptr ;
-			*vallen  = 0;			
+			*value = nullptr;
+			*vallen  = 0;
+			valstr = nullptr;
 		}
 		else
 		{
 			*errptr = strdup(s.ToString().c_str());
+			valstr = nullptr;
 		}
-
-	
+		return (void *)valstr;
 	}
 
 	void nemo_DeleteWithHandle(nemo_t * nemo,nemo_DBNemo_t * db, 
 								const char * key, const size_t keylen, 
 								char ** errptr)
 	{
-		std::string keystr(key,keylen);
+		rocksdb::Slice keystr(key,keylen);
 		nemo_SaveError(errptr,nemo->rep->DeleteWithHandle(db->rep,keystr));	
 	}
 

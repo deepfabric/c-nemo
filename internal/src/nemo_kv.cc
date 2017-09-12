@@ -11,7 +11,7 @@
 
 using namespace nemo;
 
-Status Nemo::Set(const std::string &key, const std::string &val, const int32_t ttl) {
+Status Nemo::Set(const rocksdb::Slice &key, const rocksdb::Slice &val, const int32_t ttl) {
     Status s;
     if (ttl <= 0) {
         s = kv_db_->Put(rocksdb::WriteOptions(), key, val);
@@ -21,7 +21,7 @@ Status Nemo::Set(const std::string &key, const std::string &val, const int32_t t
     return s;
 }
 
-Status Nemo::Get(const std::string &key, std::string *val) {
+Status Nemo::Get(const rocksdb::Slice &key, std::string *val) {
     Status s;
     s = kv_db_->Get(rocksdb::ReadOptions(), key, val);
     return s;
@@ -52,6 +52,17 @@ Status Nemo::MSet(const std::vector<KV> &kvs) {
     return s;
 }
 
+Status Nemo::MSetSlice(const std::vector<KVSlice> &kvs) {
+    Status s;
+    std::vector<KVSlice>::const_iterator it;
+    rocksdb::WriteBatch batch;
+    for (it = kvs.begin(); it != kvs.end(); it++) {
+        batch.Put(it->key, it->val);
+    }
+    s = kv_db_->Write(rocksdb::WriteOptions(), &(batch), 0);
+    return s;
+}
+
 Status Nemo::KMDel(const std::vector<std::string> &keys, int64_t* count) {
     *count = 0;
     Status s;
@@ -76,6 +87,16 @@ Status Nemo::MGet(const std::vector<std::string> &keys, std::vector<KVS> &kvss) 
         std::string val("");
         s = kv_db_->Get(rocksdb::ReadOptions(), *it_key, &val);
         kvss.push_back((KVS){*(it_key), val, s});
+    }
+    return Status::OK();
+}
+
+Status Nemo::MGetSlice(const std::vector<rocksdb::Slice> &keys, std::vector<SS> &vs) {
+    Status s;
+    for (size_t i=0; i<keys.size(); i++) {
+        std::string * val = new std::string();
+        s = kv_db_->Get(rocksdb::ReadOptions(), keys[i], val);
+        vs[i] = SS{val, s};
     }
     return Status::OK();
 }
