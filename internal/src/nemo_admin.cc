@@ -848,7 +848,8 @@ Status Nemo::KvRawScanSave(const std::string path,const std::string &start, cons
       f.Finish();
       return Status::OK();
     }
-    for(int i=0;it->Valid();it->Next(),i++){
+    int count = 0;
+    for(;it->Valid();it->Next(),count++){
         rocksdb::Slice iKey = it->key();
         if(!end_slc.empty()){
           if(iKey.compare(end_slc) >= 0){
@@ -866,6 +867,11 @@ Status Nemo::KvRawScanSave(const std::string path,const std::string &start, cons
     delete it;
     if(use_snapshot)
       kv_db_->ReleaseSnapshot(read_options.snapshot);
+    if(count ==0){
+      std::string value_with_ver_ts="";
+      rocksdb::DBNemoImpl::AppendVersionAndTS("",&value_with_ver_ts,kv_db_->GetEnv(),0,0);
+      f.Add("rubish_to_delete",value_with_ver_ts);
+    }
     s = f.Finish();
     return s;
 }
@@ -907,8 +913,8 @@ Status Nemo::HashRawScanSave(const std::string path,const std::string &start, co
       f.Finish();
       return Status::OK();
     }
-
-    for(int i=0;it->Valid();it->Next(),i++){
+    int count = 0;
+    for(;it->Valid();it->Next(),count++){
         rocksdb::Slice iKey = it->key();
         if(!end.empty()){
           if(iKey.compare(en_end)>=0){
@@ -963,6 +969,11 @@ Status Nemo::HashRawScanSave(const std::string path,const std::string &start, co
     if(use_snapshot)
       hash_db_->ReleaseSnapshot(read_options.snapshot);
     delete sort_key_set;
+    if(count ==0){
+      std::string value_with_ver_ts="";
+      rocksdb::DBNemoImpl::AppendVersionAndTS("",&value_with_ver_ts,kv_db_->GetEnv(),0,0);
+      f.Add("rubish_to_delete",value_with_ver_ts);
+    }    
     s = f.Finish();
     return s;
 }
@@ -1088,8 +1099,8 @@ Status Nemo::ListRawScanSave(const std::string path,const std::string &start, co
       f.Finish();
       return Status::OK();
     }
-
-    for(int i=0;it->Valid();it->Next(),i++){
+    int count = 0;
+    for(;it->Valid();it->Next(),count++){
         rocksdb::Slice iKey = it->key();
         if(!end.empty()){
           if(iKey.compare(en_end) >=0){
@@ -1144,6 +1155,11 @@ Status Nemo::ListRawScanSave(const std::string path,const std::string &start, co
     if(use_snapshot)
       list_db_->ReleaseSnapshot(read_options.snapshot);
     delete sort_key_set;
+    if(count ==0){
+      std::string value_with_ver_ts="";
+      rocksdb::DBNemoImpl::AppendVersionAndTS("",&value_with_ver_ts,kv_db_->GetEnv(),0,0);
+      f.Add("rubish_to_delete",value_with_ver_ts);
+    }
     s = f.Finish();
     return s;
 }
@@ -1186,8 +1202,8 @@ Status Nemo::SetRawScanSave(const std::string path,const std::string &start, con
       f.Finish();
       return Status::OK();
     }
-
-    for(int i=0;it->Valid();it->Next(),i++){
+    int count = 0;
+    for(;it->Valid();it->Next(),count++){
         rocksdb::Slice iKey = it->key();
         if(!end.empty()){
           if(iKey.compare(en_end) >=0 ){
@@ -1242,6 +1258,11 @@ Status Nemo::SetRawScanSave(const std::string path,const std::string &start, con
     if(use_snapshot)
       set_db_->ReleaseSnapshot(read_options.snapshot);
     delete sort_key_set;
+    if(count ==0){
+      std::string value_with_ver_ts="";
+      rocksdb::DBNemoImpl::AppendVersionAndTS("",&value_with_ver_ts,kv_db_->GetEnv(),0,0);
+      f.Add("rubish_to_delete",value_with_ver_ts);
+    }    
     s = f.Finish();
     return s;
 }
@@ -1283,8 +1304,8 @@ Status Nemo::ZsetRawScanSave(const std::string path,const std::string &start, co
       f.Finish();
       return Status::OK();
     }
-
-    for(int i=0;it->Valid();it->Next(),i++){
+    int count = 0;
+    for(;it->Valid();it->Next(),count++){
         rocksdb::Slice iKey = it->key();
         if(!en_end.empty()){
           if(iKey.compare(en_end) >= 0 ){
@@ -1327,11 +1348,11 @@ Status Nemo::ZsetRawScanSave(const std::string path,const std::string &start, co
           if(sub_key_p != entry_key) {
             break;
           }
-          s = f.Add(iKey,(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value()); 
+          s = f.Add(iKey,(dynamic_cast<rocksdb::NemoIterator *>(sub_it))->raw_value());
           if(!s.ok()){
             if(use_snapshot)
               zset_db_->ReleaseSnapshot(read_options.snapshot);
-            delete sub_it;                    
+            delete sub_it;
             return s;
           }                            
           sub_it->Next();
@@ -1374,6 +1395,11 @@ Status Nemo::ZsetRawScanSave(const std::string path,const std::string &start, co
     if(use_snapshot)
       zset_db_->ReleaseSnapshot(read_options.snapshot);
     delete sort_key_set;
+    if(count ==0){
+      std::string value_with_ver_ts="";
+      rocksdb::DBNemoImpl::AppendVersionAndTS("",&value_with_ver_ts,kv_db_->GetEnv(),0,0);
+      f.Add("rubish_to_delete",value_with_ver_ts);
+    }    
     s = f.Finish();
     return s;
 }
