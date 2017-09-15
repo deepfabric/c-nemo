@@ -53,9 +53,32 @@ struct DefaultMeta : public NemoMeta {
   }
 };
 
-typedef DefaultMeta HashMeta;
+//typedef DefaultMeta HashMeta;
 typedef DefaultMeta SetMeta;
 typedef DefaultMeta ZSetMeta;
+
+struct HashMeta : public NemoMeta {
+  int64_t len;
+  int64_t vol;
+  int64_t index_len;
+  const char *  index;
+
+  HashMeta() : len(0), vol(0),index_len(0),index(nullptr)  {}
+  HashMeta(int64_t _len, int64_t _vol, int64_t _index_len, char * _index)
+      : len(_len), vol(_vol), index_len(_index_len),index(_index) {}
+  virtual bool DecodeFrom(const std::string& raw_meta);
+  virtual bool EncodeTo(std::string& raw_meta);
+  virtual std::string ToString() {
+    char buf[32];
+    std::string res("Len : ");
+    Int64ToStr(buf, 32, len);
+    res.append(buf);
+    res.append(";Vol : ");
+    Int64ToStr(buf, 32, len);
+    res.append(buf);
+    return res;
+  }  
+};
 
 struct ListMeta : public NemoMeta {
   int64_t len;

@@ -96,7 +96,7 @@ public:
     Status Exists(const std::vector<std::string> &key, int64_t* res);
 
     // =================KV=====================
-    Status Set(const rocksdb::Slice &key, const rocksdb::Slice &val, const int32_t ttl);
+    Status Set(const rocksdb::Slice &key, const rocksdb::Slice &val, const int32_t ttl=0);
     Status Get(const rocksdb::Slice &key, std::string *val);
     Status MSet(const std::vector<KV> &kvs);
     Status MSetSlice(const std::vector<KVSlice> &kvs);
@@ -157,6 +157,8 @@ public:
     bool HSize(const rocksdb::Slice &key, HashMeta & meta);
     int IncrHSize(const rocksdb::Slice &key, int64_t incrlen ,int64_t incrvol, rocksdb::WriteBatch &writebatch);
 
+    Status HGetIndexInfo(const rocksdb::Slice &key, std::string ** index);
+    Status HSetIndexInfo(const rocksdb::Slice &key, const rocksdb::Slice &index);
     // ==============List=====================
     Status LIndex(const std::string &key, const int64_t index, std::string *val);
     Status LLen(const std::string &key, int64_t *llen);
@@ -400,7 +402,6 @@ private:
     int DoHSet(const rocksdb::Slice &key, const rocksdb::Slice &field, const rocksdb::Slice val, rocksdb::WriteBatch &writebatch);       
     int64_t DoHDel(const rocksdb::Slice &key, const rocksdb::Slice &field, rocksdb::WriteBatch &writebatch);
     Status HSetNoLock(const std::string &key, const std::string &field, const std::string &val);
-    int IncrHLen(const rocksdb::Slice &key, int64_t incr, rocksdb::WriteBatch &writebatch);
 
     Status ZAddNoLock(const std::string &key, const double score, const std::string &member, int64_t *res);
     Status ZRemrangebyrankNoLock(const std::string &key, const int64_t start, const int64_t stop, int64_t* count);

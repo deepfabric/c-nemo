@@ -218,6 +218,7 @@ public:
     virtual void Skip(int64_t offset);
     virtual bool Valid();
     rocksdb::Slice rawkey();
+    rocksdb::Slice IndexInfo();    
     rocksdb::Slice key();
     int64_t volume();
     void CheckAndLoadData();

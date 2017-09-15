@@ -18,6 +18,7 @@ typedef	struct nemo_Iterator_t nemo_Iterator_t;
 typedef	struct nemo_KIterator_t nemo_KIterator_t;
 typedef	struct nemo_KIteratorRO_t nemo_KIteratorRO_t;
 typedef	struct nemo_HIterator_t nemo_HIterator_t;
+typedef	struct nemo_HmetaIterator_t nemo_HmetaIterator_t;
 typedef	struct nemo_ZIterator_t nemo_ZIterator_t;
 typedef	struct nemo_SIterator_t nemo_SIterator_t;
 typedef struct nemo_Snaptshot_t nemo_Snaptshot_t;
@@ -202,6 +203,22 @@ extern void nemo_HVals(nemo_t * nemo,const char * key,const size_t keylen,char *
 extern void nemo_HIncrby(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,const int64_t by, char ** new_val, size_t * new_val_len, char ** errptr);
 
 extern void nemo_HIncrbyfloat(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,const double by, char ** new_val, size_t * new_val_len, char ** errptr);
+
+extern void * nemo_HGetIndexInfo(nemo_t * nemo,const char * key,const size_t keylen, const char ** index, size_t * index_len , char ** errptr);
+
+extern void nemo_HSetIndexInfo(nemo_t * nemo,const char * key,const size_t keylen, const char * index, size_t index_len , char ** errptr);
+
+extern nemo_HmetaIterator_t  * nemo_HmetaScan(nemo_t *nemo,const char * start,const size_t startlen, const char * end, const size_t endlen, bool use_snapshot);
+
+extern void HmetaNext(nemo_HmetaIterator_t * it);
+
+extern bool HmetaValid(nemo_HmetaIterator_t * it);
+
+extern const char* HmetaKey(nemo_HmetaIterator_t * it, size_t* keylen);
+
+extern const char* HmetaIndexInfo(nemo_HmetaIterator_t * it, size_t* indexlen);
+
+extern void HmetaIteratorFree(nemo_HmetaIterator_t * it);
 
   // ==============List=====================
 extern void nemo_LIndex(nemo_t * nemo,const char * key, const size_t keylen, const int64_t index, char ** val, size_t * val_len, char ** errptr);

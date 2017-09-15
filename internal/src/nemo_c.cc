@@ -25,6 +25,7 @@ using nemo::Iterator;
 using nemo::KIterator;
 using nemo::KIteratorRO;
 using nemo::HIterator;
+using nemo::HmetaIterator;
 using nemo::ZIterator;
 using nemo::SIterator;
 using nemo::KV;
@@ -51,6 +52,7 @@ extern "C"	{
 	struct nemo_KIterator_t { KIterator * rep;};
 	struct nemo_KIteratorRO_t { KIteratorRO * rep;};
 	struct nemo_HIterator_t { HIterator * rep;};
+	struct nemo_HmetaIterator_t { HmetaIterator * rep;};
 	struct nemo_ZIterator_t { ZIterator * rep;};
 	struct nemo_SIterator_t { SIterator * rep;};
 	struct nemo_Snaptshot_t { Snapshot * rep;};
@@ -627,7 +629,7 @@ extern "C"	{
 		}
 		nemo_SaveError(errptr,nemo->rep->HMSetSlice(rocksdb::Slice(key,keylen),fv,res_list));
 	}
-	   void * nemo_HMGet(nemo_t * nemo,const char * key,const size_t keylen, const int num,		\
+	void * nemo_HMGet(nemo_t * nemo,const char * key,const size_t keylen, const int num,		\
 									 const char ** field_list,const size_t * field_list_len,	\
 					 			     const char ** value_list,size_t * value_list_strlen, char ** errs,char ** errptr){
 		std::vector<SS> *ss = new std::vector<SS>(num);
@@ -702,6 +704,73 @@ extern "C"	{
 		nemo_SaveError(errptr,nemo->rep->HIncrbyfloat(std::string(key,keylen),std::string(field,fieldlen),by,new_val_cpp));
 		*new_val = CopyString(new_val_cpp);
 		*new_val_len = new_val_cpp.size(); 
+	}
+
+	void * nemo_HGetIndexInfo(nemo_t * nemo,const char * key,const size_t keylen, const char ** index, size_t * index_len , char ** errptr){
+		std::string * val_str;
+		Status s = nemo->rep->HGetIndexInfo(rocksdb::Slice(key,keylen),&val_str);
+		if(s.ok())
+		{
+			int64_t len = sizeof(int64_t)*2;
+			*errptr = nullptr;
+			*index_len = val_str->size()-len;
+			if(*index_len > 0)
+				*index = val_str->data()+len;
+			else
+				*index = nullptr;
+		}
+		else
+		{
+			*errptr = strdup(s.ToString().c_str());
+		}
+		return (void * ) val_str;
+	}
+	void nemo_HSetIndexInfo(nemo_t * nemo,const char * key,const size_t keylen, const char * index, size_t index_len , char ** errptr){
+		nemo_SaveError(errptr,nemo->rep->HSetIndexInfo(rocksdb::Slice(key,keylen),rocksdb::Slice(index,index_len)));
+	}
+
+	nemo_HmetaIterator_t  * nemo_HmetaScan(nemo_t *nemo, const char * start,const size_t startlen, const char * end, const size_t endlen, bool use_snapshot){
+		nemo_HmetaIterator_t * it = new nemo_HmetaIterator_t;
+		it->rep = nemo->rep->HmetaScan(std::string(start,startlen),std::string(end,endlen),1LL << 60,use_snapshot);
+		if(it->rep->Valid()){
+			while(1){
+				if(it->rep->IndexInfo().size()>0)
+					break;
+				else if(!it->rep->Valid())
+					break;
+				it->rep->Next();
+			}
+		}
+		return it;
+	}
+
+	void HmetaNext(nemo_HmetaIterator_t * it)
+	{
+		while(1){
+			it->rep->Next();
+			if(it->rep->IndexInfo().size()>0)
+				break;
+			else if(!it->rep->Valid())
+				break;
+		}
+	}
+	bool HmetaValid(nemo_HmetaIterator_t * it){
+		return it->rep->Valid();	
+	}
+	const char* HmetaKey(nemo_HmetaIterator_t * it, size_t* keylen)
+	{
+		*keylen = it->rep->key().size();
+		return it->rep->key().data();
+	}
+	const char* HmetaIndexInfo(nemo_HmetaIterator_t * it, size_t* indexlen)
+	{
+		*indexlen = it->rep->IndexInfo().size();
+		return it->rep->IndexInfo().data();
+	}
+	void HmetaIteratorFree(nemo_HmetaIterator_t * it)
+	{
+		delete it->rep;
+		delete it;
 	}
 
 	// ==============List=====================

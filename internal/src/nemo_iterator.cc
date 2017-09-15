@@ -379,6 +379,15 @@ int64_t nemo::HmetaIterator::volume(){
   return *(int64_t *)(value.data()+ sizeof(int64_t));
 }
 
+rocksdb::Slice nemo::HmetaIterator::IndexInfo(){
+  rocksdb::Slice value = IteratorRO::value();
+  size_t len = sizeof(int64_t)*2;
+  if(value.size()>len)
+    return rocksdb::Slice(value.data()+len,value.size()-len);
+  else
+    return rocksdb::Slice();
+}
+
 bool nemo::HmetaIterator::Valid() {
   return valid_;
 }
