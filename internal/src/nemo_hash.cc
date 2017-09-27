@@ -65,7 +65,7 @@ Status Nemo::HChecknRecover(const std::string& key) {
   if (IncrHSize(key, (field_count - meta.len), (volume - meta.vol), writebatch) == -1) {
     return Status::Corruption("fix hash meta failed");
   }
-  return hash_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &(writebatch));
+  return hash_db_->WriteWithOldKeyTTL(w_opts_nolog(), &(writebatch));
 }
 
 Status Nemo::HSet(const rocksdb::Slice &key, const rocksdb::Slice &field, const rocksdb::Slice &val, int * res) {
@@ -91,7 +91,7 @@ Status Nemo::HSet(const rocksdb::Slice &key, const rocksdb::Slice &field, const 
     }
     else
         *res = 0;
-    s = hash_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &(writebatch));
+    s = hash_db_->WriteWithOldKeyTTL(w_opts_nolog(), &(writebatch));
 
     //hash_record_.Unlock(key);
     return s;
@@ -106,7 +106,7 @@ Status Nemo::HSetNoLock(const std::string &key, const std::string &field, const 
             return Status::Corruption("incrhsize error");
         }
     }
-    s = hash_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &(writebatch));
+    s = hash_db_->WriteWithOldKeyTTL(w_opts_nolog(), &(writebatch));
     return s;
 }
 
@@ -228,7 +228,7 @@ Status Nemo::HExpire(const std::string &key, const int32_t seconds, int64_t *res
       meta.EncodeTo(val);
       if (seconds > 0) {
         //MutexLock l(&mutex_hash_);
-        s = hash_db_->Put(rocksdb::WriteOptions(), size_key, val, seconds);
+        s = hash_db_->Put(w_opts_nolog(), size_key, val, seconds);
       } else { 
         int64_t count;
         s = HDelKey(key, &count);
@@ -290,7 +290,7 @@ Status Nemo::HPersist(const std::string &key, int64_t *res) {
         s = hash_db_->GetKeyTTL(rocksdb::ReadOptions(), size_key, &ttl);
         if (s.ok() && ttl >= 0) {
             //MutexLock l(&mutex_hash_);
-            s = hash_db_->Put(rocksdb::WriteOptions(), size_key, val);
+            s = hash_db_->Put(w_opts_nolog(), size_key, val);
             *res = 1;
         }
     }
@@ -325,7 +325,7 @@ Status Nemo::HExpireat(const std::string &key, const int32_t timestamp, int64_t 
         int64_t count;
         s = HDelKey(key, &count);
       } else {
-        s = hash_db_->PutWithExpiredTime(rocksdb::WriteOptions(), size_key, val, timestamp);
+        s = hash_db_->PutWithExpiredTime(w_opts_nolog(), size_key, val, timestamp);
       }
       *res = 1;
     }
@@ -470,7 +470,7 @@ Status Nemo::HMSetSlice(const rocksdb::Slice &key, const std::vector<FVSlice> &f
 
     meta.EncodeTo(new_meta_val);
     writebatch.Put(size_key, new_meta_val);
-    s = hash_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &(writebatch));
+    s = hash_db_->WriteWithOldKeyTTL(w_opts_nolog(), &(writebatch));
     return s;
 }
 
@@ -557,7 +557,7 @@ Status Nemo::HSetnx(const std::string &key, const std::string &field, const std:
                 return Status::Corruption("incrhsize error");
             }
         }
-        s = hash_db_->Write(rocksdb::WriteOptions(), &(writebatch));
+        s = hash_db_->Write(w_opts_nolog(), &(writebatch));
         *res = 1;
         return s;
     } else if(s.ok()) {
@@ -758,7 +758,7 @@ Status Nemo::HSetIndexInfo(const rocksdb::Slice &key, const rocksdb::Slice &inde
     meta.EncodeTo(new_val);
     rocksdb::WriteBatch writebatch;
     writebatch.Put(size_key,new_val);
-    return hash_db_->WriteWithOldKeyTTL(rocksdb::WriteOptions(), &(writebatch));
+    return hash_db_->WriteWithOldKeyTTL(w_opts_nolog(), &(writebatch));
 
 }
 

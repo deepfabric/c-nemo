@@ -31,6 +31,7 @@ struct ItemListMap{
     std::map<T1, T2> map_;
 };
 
+rocksdb::WriteOptions w_opts_nolog();
 /*
  * There are two type OP: DEL_KEY and CLEAN_RANGE;
  * DEL_KEY use only the first parameter argv1;
@@ -246,9 +247,11 @@ public:
         return raft_db_.get();        
     }
 
-    Status BatchWrite(rocksdb::DBNemo* db, rocksdb::WriteBatch *wb)
+    Status BatchWrite(rocksdb::DBNemo* db, rocksdb::WriteBatch *wb, bool sync)
     {
-        return db->Write(rocksdb::WriteOptions(),wb,0);
+        rocksdb::WriteOptions opts;
+        opts.sync = sync;
+        return db->Write(opts,wb,0);
     }
 
     Status GetWithHandle(rocksdb::DBNemo* db,const rocksdb::Slice & key,std::string * value )
@@ -256,14 +259,18 @@ public:
         return db->Get(rocksdb::ReadOptions(),key,value);
     }
 
-    Status PutWithHandle(rocksdb::DBNemo* db,const rocksdb::Slice & key,const rocksdb::Slice & value )
+    Status PutWithHandle(rocksdb::DBNemo* db,const rocksdb::Slice & key,const rocksdb::Slice & value, bool sync)
     {
-        return db->Put(rocksdb::WriteOptions(),key,value);
+        rocksdb::WriteOptions opts;
+        opts.sync = sync;
+        return db->Put(opts,key,value);
     }
 
-    Status DeleteWithHandle(rocksdb::DBNemo* db,const rocksdb::Slice & key)
+    Status DeleteWithHandle(rocksdb::DBNemo* db,const rocksdb::Slice & key, bool sync)
     {
-        return db->Delete(rocksdb::WriteOptions(),key);
+        rocksdb::WriteOptions opts;
+        opts.sync = sync;        
+        return db->Delete(opts,key);
     }
 
     KIteratorRO* KScanWithHandle(rocksdb::DBNemo * db, const std::string &start, const std::string &end, uint64_t limit = 1LL << 60, bool use_snapshot=true); 

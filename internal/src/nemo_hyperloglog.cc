@@ -130,7 +130,7 @@ Status Nemo::PfAdd(const std::string &key, const std::vector<std::string> &value
   if (previous != now || (s.IsNotFound() && values.size()==0)) {
     update = true;
   }
-  s = kv_db_->Put(rocksdb::WriteOptions(), key, result);
+  s = kv_db_->Put(w_opts_nolog(), key, result);
   return s;
 }
    
@@ -191,7 +191,7 @@ Status Nemo::PfMerge(const std::vector<std::string> &keys) {
     HyperLogLog log(17, str_register);
     result = first_log.Merge(log); 
   }
-  s = kv_db_->Put(rocksdb::WriteOptions(), keys[0], result);
+  s = kv_db_->Put(w_opts_nolog(), keys[0], result);
   return s;
 }
 

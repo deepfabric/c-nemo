@@ -50,14 +50,14 @@ int main() {
 
   std::string nKey,nVal,startkey;
   startkey = "";
-  s = n->PutWithHandle(meta,"AFirstKey","FirstVal");
+  s = n->PutWithHandle(meta,"AFirstKey","FirstVal",false);
   assert(s.ok());
   s = n->SeekWithHandle(meta,startkey,&nKey,&nVal);
   assert(s.ok());
   assert(nKey == "AFirstKey");
   assert(nVal == "FirstVal");
 
-  s = n->PutWithHandle(meta,"Hello","World");
+  s = n->PutWithHandle(meta,"Hello","World",false);
   assert(s.ok());
   s = n->GetWithHandle(meta,"Hello",&res);
   assert(s.ok());
@@ -65,7 +65,7 @@ int main() {
   rocksdb::WriteBatch wb;
   wb.Put("MetaKey1","MetaVal1");
   wb.Put("MetaKey2","MetaVal2");
-  s = n->BatchWrite(meta,&wb);
+  s = n->BatchWrite(meta,&wb,false);
   assert(s.ok());
   s = n->GetWithHandle(meta,"MetaKey2",&res);
   assert(s.ok());  

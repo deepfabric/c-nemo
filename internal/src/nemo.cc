@@ -15,6 +15,12 @@
 
 namespace nemo {
 
+rocksdb::WriteOptions w_opts_nolog(){
+    rocksdb::WriteOptions opts;
+    opts.disableWAL = true;
+    return opts;
+};
+
 Nemo::Nemo(const std::string &db_path, const Options &options)
     : db_path_(db_path),
     save_flag_(false),

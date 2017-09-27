@@ -1571,20 +1571,21 @@ extern "C"	{
 		rocksdb::Slice keystr(key,keylen);
 		nwb->rep.Delete(keystr);
 	}
-	void rocksdb_BatchWrite(nemo_t * nemo,nemo_DBNemo_t * db,nemo_WriteBatch_t * nwb,char ** errptr)
+	void rocksdb_BatchWrite(nemo_t * nemo,nemo_DBNemo_t * db,nemo_WriteBatch_t * nwb, bool sync ,char ** errptr)
 	{
-	 	nemo_SaveError(errptr,nemo->rep->BatchWrite(db->rep,&(nwb->rep)));
+	 	nemo_SaveError(errptr,nemo->rep->BatchWrite(db->rep,&(nwb->rep),sync));
 		delete nwb;
 	}
 
 	void nemo_PutWithHandle(nemo_t * nemo,nemo_DBNemo_t * db, 
 								const char * key, const size_t keylen, 
 								const char * value ,const size_t vallen,
+								bool sync,
 								char ** errptr)
 	{
 		rocksdb::Slice keystr(key,keylen);
 		rocksdb::Slice valstr(value,vallen);
-		nemo_SaveError(errptr,nemo->rep->PutWithHandle(db->rep,keystr,valstr));
+		nemo_SaveError(errptr,nemo->rep->PutWithHandle(db->rep,keystr,valstr,sync));
 	}
 
 	void * nemo_GetWithHandle(nemo_t * nemo,nemo_DBNemo_t * db, 
@@ -1619,10 +1620,11 @@ extern "C"	{
 
 	void nemo_DeleteWithHandle(nemo_t * nemo,nemo_DBNemo_t * db, 
 								const char * key, const size_t keylen, 
+								bool sync,
 								char ** errptr)
 	{
 		rocksdb::Slice keystr(key,keylen);
-		nemo_SaveError(errptr,nemo->rep->DeleteWithHandle(db->rep,keystr));	
+		nemo_SaveError(errptr,nemo->rep->DeleteWithHandle(db->rep,keystr,sync));	
 	}
 
 	nemo_VolumeIterator_t * createVolumeIterator(nemo_t * nemo,

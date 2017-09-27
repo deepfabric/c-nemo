@@ -14,9 +14,9 @@ using namespace nemo;
 Status Nemo::Set(const rocksdb::Slice &key, const rocksdb::Slice &val, const int32_t ttl) {
     Status s;
     if (ttl <= 0) {
-        s = kv_db_->Put(rocksdb::WriteOptions(), key, val);
+        s = kv_db_->Put(w_opts_nolog(), key, val);
     } else {
-        s = kv_db_->Put(rocksdb::WriteOptions(), key, val, ttl);
+        s = kv_db_->Put(w_opts_nolog(), key, val, ttl);
     }
     return s;
 }
@@ -48,7 +48,7 @@ Status Nemo::MSet(const std::vector<KV> &kvs) {
     for (it = kvs.begin(); it != kvs.end(); it++) {
         batch.Put(it->key, it->val); 
     }
-    s = kv_db_->Write(rocksdb::WriteOptions(), &(batch), 0);
+    s = kv_db_->Write(w_opts_nolog(), &(batch), 0);
     return s;
 }
 
@@ -59,7 +59,7 @@ Status Nemo::MSetSlice(const std::vector<KVSlice> &kvs) {
     for (it = kvs.begin(); it != kvs.end(); it++) {
         batch.Put(it->key, it->val);
     }
-    s = kv_db_->Write(rocksdb::WriteOptions(), &(batch), 0);
+    s = kv_db_->Write(w_opts_nolog(), &(batch), 0);
     return s;
 }
 
@@ -124,9 +124,9 @@ Status Nemo::Incrby(const std::string &key, const int64_t by, std::string &new_v
     int64_t ttl;
     s = KTTL(key, &ttl);
     if (ttl) {
-        s = kv_db_->Put(rocksdb::WriteOptions(), key, new_val, (int32_t)ttl);
+        s = kv_db_->Put(w_opts_nolog(), key, new_val, (int32_t)ttl);
     } else {
-        s = kv_db_->Put(rocksdb::WriteOptions(), key, new_val);
+        s = kv_db_->Put(w_opts_nolog(), key, new_val);
     }
     return s;
 }
@@ -154,9 +154,9 @@ Status Nemo::Decrby(const std::string &key, const int64_t by, std::string &new_v
     int64_t ttl;
     s = KTTL(key, &ttl);
     if (ttl) {
-        s = kv_db_->Put(rocksdb::WriteOptions(), key, new_val, (int32_t)ttl);
+        s = kv_db_->Put(w_opts_nolog(), key, new_val, (int32_t)ttl);
     } else {
-        s = kv_db_->Put(rocksdb::WriteOptions(), key, new_val);
+        s = kv_db_->Put(w_opts_nolog(), key, new_val);
     }
     return s;
 }
@@ -193,9 +193,9 @@ Status Nemo::Incrbyfloat(const std::string &key, const double by, std::string &n
     int64_t ttl;
     s = KTTL(key, &ttl);
     if (ttl) {
-        s = kv_db_->Put(rocksdb::WriteOptions(), key, new_val, (int32_t)ttl);
+        s = kv_db_->Put(w_opts_nolog(), key, new_val, (int32_t)ttl);
     } else {
-        s = kv_db_->Put(rocksdb::WriteOptions(), key, new_val);
+        s = kv_db_->Put(w_opts_nolog(), key, new_val);
     }
     return s;
 }
@@ -210,7 +210,7 @@ Status Nemo::GetSet(const std::string &key, const std::string &new_val, std::str
     if (!s.ok() && !s.IsNotFound()) {
         return Status::Corruption("Get error");
     }else {
-        s = kv_db_->Put(rocksdb::WriteOptions(), key, new_val);
+        s = kv_db_->Put(w_opts_nolog(), key, new_val);
         return s;
     }
 }
@@ -234,9 +234,9 @@ Status Nemo::Append(const std::string &key, const std::string &value, int64_t *n
     int64_t ttl;
     s = KTTL(key, &ttl);
     if (ttl) {
-        s = kv_db_->Put(rocksdb::WriteOptions(), key, new_val, (int32_t)ttl);
+        s = kv_db_->Put(w_opts_nolog(), key, new_val, (int32_t)ttl);
     } else {
-        s = kv_db_->Put(rocksdb::WriteOptions(), key, new_val);
+        s = kv_db_->Put(w_opts_nolog(), key, new_val);
     }
     *new_len = new_val.size();
     return s;
@@ -250,9 +250,9 @@ Status Nemo::Setnx(const std::string &key, const std::string &value, int64_t *re
     Status s = kv_db_->Get(rocksdb::ReadOptions(), key, &val);
     if (s.IsNotFound()) {
         if (ttl <= 0) {
-            s = kv_db_->Put(rocksdb::WriteOptions(), key, value);
+            s = kv_db_->Put(w_opts_nolog(), key, value);
         } else {
-            s = kv_db_->Put(rocksdb::WriteOptions(), key, value, ttl);
+            s = kv_db_->Put(w_opts_nolog(), key, value, ttl);
         }
         *ret = 1;
     }
@@ -267,9 +267,9 @@ Status Nemo::Setxx(const std::string &key, const std::string &value, int64_t *re
     Status s = kv_db_->Get(rocksdb::ReadOptions(), key, &val);
     if (s.ok()) {
         if (ttl <= 0) {
-            s = kv_db_->Put(rocksdb::WriteOptions(), key, value);
+            s = kv_db_->Put(w_opts_nolog(), key, value);
         } else {
-            s = kv_db_->Put(rocksdb::WriteOptions(), key, value, ttl);
+            s = kv_db_->Put(w_opts_nolog(), key, value, ttl);
         }
         *ret = 1;
     }
@@ -291,7 +291,7 @@ Status Nemo::MSetnx(const std::vector<KV> &kvs, int64_t *ret) {
         batch.Put(it->key, it->val); 
     }
     if (*ret == 1) {
-        s = kv_db_->Write(rocksdb::WriteOptions(), &(batch), 0);
+        s = kv_db_->Write(w_opts_nolog(), &(batch), 0);
     }
     return s;
 }
@@ -354,9 +354,9 @@ Status Nemo::Setrange(const std::string key, const int64_t offset, const std::st
     int64_t ttl;
     s = KTTL(key, &ttl);
     if (ttl) {
-        s = kv_db_->Put(rocksdb::WriteOptions(), key, new_val, (int32_t)ttl);
+        s = kv_db_->Put(w_opts_nolog(), key, new_val, (int32_t)ttl);
     } else {
-        s = kv_db_->Put(rocksdb::WriteOptions(), key, new_val);
+        s = kv_db_->Put(w_opts_nolog(), key, new_val);
     }
     return s;
 }
@@ -645,9 +645,9 @@ Status Nemo::KExpire(const std::string &key, const int32_t seconds, int64_t *res
         *res = 0;
     } else if (s.ok()) {
         if (seconds > 0) {
-            s = kv_db_->Put(rocksdb::WriteOptions(), key, val, seconds);
+            s = kv_db_->Put(w_opts_nolog(), key, val, seconds);
         } else { 
-            s = kv_db_->Delete(rocksdb::WriteOptions(), key);
+            s = kv_db_->Delete(w_opts_nolog(), key);
         }
         *res = 1;
     }
@@ -681,7 +681,7 @@ Status Nemo::KPersist(const std::string &key, int64_t *res) {
         int32_t ttl;
         s = kv_db_->GetKeyTTL(rocksdb::ReadOptions(), key, &ttl);
         if (s.ok() && ttl >= 0) {
-            s = kv_db_->Put(rocksdb::WriteOptions(), key, val);
+            s = kv_db_->Put(w_opts_nolog(), key, val);
             *res = 1;
         }
     }
@@ -699,9 +699,9 @@ Status Nemo::KExpireat(const std::string &key, const int32_t timestamp, int64_t 
     } else if (s.ok()) {
         std::time_t cur = std::time(0);
         if (timestamp <= cur) {
-            s = kv_db_->Delete(rocksdb::WriteOptions(), key);
+            s = kv_db_->Delete(w_opts_nolog(), key);
         } else {
-            s = kv_db_->PutWithExpiredTime(rocksdb::WriteOptions(), key, val, timestamp);
+            s = kv_db_->PutWithExpiredTime(w_opts_nolog(), key, val, timestamp);
         }
         *res = 1;
     }
@@ -713,9 +713,9 @@ Status Nemo::SetWithExpireAt(const std::string &key, const std::string &val, con
     //std::time_t cur = std::time(0);
     Status s;
     if (timestamp <= 0) {
-        s = kv_db_->Put(rocksdb::WriteOptions(), key, val);
+        s = kv_db_->Put(w_opts_nolog(), key, val);
     } else {
-        s = kv_db_->PutWithExpiredTime(rocksdb::WriteOptions(), key, val, timestamp);
+        s = kv_db_->PutWithExpiredTime(w_opts_nolog(), key, val, timestamp);
     }
     return s;
 }

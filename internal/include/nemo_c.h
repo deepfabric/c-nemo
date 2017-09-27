@@ -385,10 +385,11 @@ extern nemo_WriteBatch_t * createWriteBatch();
 extern void rocksdb_WriteBatch_Put(nemo_WriteBatch_t * nwb, const char * key, const size_t keylen, 
 												 const char * value ,const size_t vallen );
 extern void rocksdb_WriteBatch_Del(nemo_WriteBatch_t * nwb,  const char * key, const size_t keylen);
-extern void rocksdb_BatchWrite(nemo_t * nemo,nemo_DBNemo_t * db,nemo_WriteBatch_t * nwb,char ** errptr);                                                  
+extern void rocksdb_BatchWrite(nemo_t * nemo,nemo_DBNemo_t * db,nemo_WriteBatch_t * nwb,bool sync,char ** errptr); 
 extern void nemo_PutWithHandle(nemo_t * nemo,nemo_DBNemo_t * db, 
 								const char * key, const size_t keylen, 
 								const char * value ,const size_t vallen,
+								bool sync,
 								char ** errptr);
 extern void * nemo_GetWithHandle(nemo_t * nemo,nemo_DBNemo_t * db, 
 								const char * key, const size_t keylen, 
@@ -396,7 +397,8 @@ extern void * nemo_GetWithHandle(nemo_t * nemo,nemo_DBNemo_t * db,
 								char ** errptr);                
 
 extern void nemo_DeleteWithHandle(nemo_t * nemo,nemo_DBNemo_t * db, 
-								const char * key, const size_t keylen, 
+								const char * key, const size_t keylen,
+								bool sync,
 								char ** errptr); 
 
 extern nemo_KIteratorRO_t  * nemo_KScanWithHandle(nemo_t *nemo, nemo_DBNemo_t * db,const char * start,const size_t startlen, const char * end, const size_t endlen, bool use_snapshot);

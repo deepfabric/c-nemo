@@ -40,7 +40,7 @@ Status Nemo::BitSet(const std::string &key, const std::int64_t offset, const int
             value.append(byte - value_lenth -1, 0);
             value.append(1, byte_val);
         }
-        s = kv_db_->Put(rocksdb::WriteOptions(), key, value);
+        s = kv_db_->Put(w_opts_nolog(), key, value);
         if (s.ok()) {
             return Status::OK();
         } else {
@@ -407,7 +407,7 @@ Status Nemo::BitOp(BitOpType op, const std::string &dest_key, const std::vector<
     }
     std::string dest_value = BitOpOperate(op, src_values, max_len, min_len);
     *result_length = dest_value.size();
-    s = kv_db_->Put(rocksdb::WriteOptions(), dest_key, dest_value);
+    s = kv_db_->Put(w_opts_nolog(), dest_key, dest_value);
     if(s.ok()) {
         return Status::OK();
     } else {
