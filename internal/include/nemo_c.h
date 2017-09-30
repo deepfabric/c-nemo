@@ -204,7 +204,7 @@ extern void nemo_HIncrby(nemo_t * nemo,const char * key,const size_t keylen,cons
 
 extern void nemo_HIncrbyfloat(nemo_t * nemo,const char * key,const size_t keylen,const char * field,const size_t fieldlen,const double by, char ** new_val, size_t * new_val_len, char ** errptr);
 
-extern void * nemo_HGetIndexInfo(nemo_t * nemo,const char * key,const size_t keylen, const char ** index, size_t * index_len , char ** errptr);
+extern void * nemo_HGetIndexInfo(nemo_t * nemo,const char * key,const size_t keylen, const char ** index, size_t * index_len , int32_t * res, char ** errptr);
 
 extern void nemo_HSetIndexInfo(nemo_t * nemo,const char * key,const size_t keylen, const char * index, size_t index_len , char ** errptr);
 

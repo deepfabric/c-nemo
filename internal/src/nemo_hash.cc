@@ -720,8 +720,7 @@ Status Nemo::HGetIndexInfo(const rocksdb::Slice &key, std::string ** index){
     *index = val;
     s = hash_db_->Get(rocksdb::ReadOptions(), size_key, val);
     if (s.IsNotFound()) {
-        val->clear();
-        return Status::OK();
+        return s;
     } else if(!s.ok()) {
         return s;
     } else {

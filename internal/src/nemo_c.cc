@@ -706,18 +706,28 @@ extern "C"	{
 		*new_val_len = new_val_cpp.size(); 
 	}
 
-	void * nemo_HGetIndexInfo(nemo_t * nemo,const char * key,const size_t keylen, const char ** index, size_t * index_len , char ** errptr){
+	void * nemo_HGetIndexInfo(nemo_t * nemo,const char * key,const size_t keylen, const char ** index, size_t * index_len, int32_t * res, char ** errptr){
 		std::string * val_str;
 		Status s = nemo->rep->HGetIndexInfo(rocksdb::Slice(key,keylen),&val_str);
 		if(s.ok())
 		{
 			int64_t len = sizeof(int64_t)*2;
 			*errptr = nullptr;
-			*index_len = val_str->size()-len;
-			if(*index_len > 0)
+			if(val_str->size()>2){
 				*index = val_str->data()+len;
-			else
+				*index_len = val_str->size()-len;
+				*res = 0;
+			}
+			else {
 				*index = nullptr;
+				*index_len = 0;
+				*res = 0;
+			}
+		}
+		else if(s.IsNotFound()){
+			*index = nullptr;
+			*index_len = 0;
+			*res = -1;
 		}
 		else
 		{
