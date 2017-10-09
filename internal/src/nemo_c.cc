@@ -713,7 +713,7 @@ extern "C"	{
 		{
 			int64_t len = sizeof(int64_t)*2;
 			*errptr = nullptr;
-			if(val_str->size()>2){
+			if(val_str->size()>len){
 				*index = val_str->data()+len;
 				*index_len = val_str->size()-len;
 				*res = 0;
