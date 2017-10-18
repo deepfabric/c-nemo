@@ -381,6 +381,7 @@ extern void nemo_ZChecknRecover(nemo_t * nemo,const char * key,const size_t keyl
 
 extern nemo_DBNemo_t * nemo_GetMetaHandle(nemo_t * nemo);
 extern nemo_DBNemo_t * nemo_GetRaftHandle(nemo_t * nemo);
+extern nemo_DBNemo_t * nemo_GetKvHandle(nemo_t * nemo);
 extern nemo_WriteBatch_t * createWriteBatch();
 extern void rocksdb_WriteBatch_Put(nemo_WriteBatch_t * nwb, const char * key, const size_t keylen, 
 												 const char * value ,const size_t vallen );

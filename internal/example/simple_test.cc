@@ -71,6 +71,18 @@ int main() {
   assert(s.ok());  
   assert(res == "MetaVal2"); 
 
+  s = n->Set("kvdb","test",0);
+  assert(s.ok());
+  rocksdb::DBNemo * kvdb = n->GetKvHandle();
+  rocksdb::WriteBatch wb2;
+  wb2.Put("Hello","World");
+  wb2.Delete("kvdb");
+  s = n->BatchWrite(kvdb,&wb2,true);
+  assert(s.ok());
+  s = n->Get("Hello",&res);
+  assert(s.ok());  
+  assert(res == "World");
+
   std::cout << "scanwithhandle: A-MetaKey2" << std::endl;
   KIteratorRO* kit = n->KScanWithHandle(meta,"A","MetaKey2",100,true);
   while(kit->Valid()){

@@ -247,6 +247,11 @@ public:
         return raft_db_.get();        
     }
 
+    rocksdb::DBNemo * GetKvHandle()
+    {
+        return kv_db_.get();        
+    }
+
     Status BatchWrite(rocksdb::DBNemo* db, rocksdb::WriteBatch *wb, bool sync)
     {
         rocksdb::WriteOptions opts;

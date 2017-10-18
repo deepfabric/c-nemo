@@ -1561,6 +1561,11 @@ extern "C"	{
 		return db;
 	}
 
+	nemo_DBNemo_t * nemo_GetKvHandle(nemo_t * nemo){
+		nemo_DBNemo_t * db = new nemo_DBNemo_t;
+		db->rep = nemo->rep->GetKvHandle();
+		return db;
+	}
 
 	nemo_WriteBatch_t * createWriteBatch()
 	{
