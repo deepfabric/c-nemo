@@ -84,8 +84,8 @@ Status Nemo::ScanDBMetasOnSnap(std::unique_ptr<rocksdb::DBNemo> &db, const rocks
 
   it->Seek(prefix);
   MetaPtr p_meta;
-  NemoMeta::Create(type, p_meta);
   for (; it->Valid(); it->Next()) {
+    NemoMeta::Create(type, p_meta);
     if (prefix.at(0) != it->key().ToString().at(0)) {
       break;
     }

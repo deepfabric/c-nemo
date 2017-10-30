@@ -47,7 +47,7 @@ struct DefaultMeta : public NemoMeta {
     Int64ToStr(buf, 32, len);
     res.append(buf);
     res.append(";Vol : ");
-    Int64ToStr(buf, 32, len);
+    Int64ToStr(buf, 32, vol);
     res.append(buf);
     return res;
   }
@@ -74,7 +74,7 @@ struct HashMeta : public NemoMeta {
     Int64ToStr(buf, 32, len);
     res.append(buf);
     res.append(";Vol : ");
-    Int64ToStr(buf, 32, len);
+    Int64ToStr(buf, 32, vol);
     res.append(buf);
     return res;
   }  
