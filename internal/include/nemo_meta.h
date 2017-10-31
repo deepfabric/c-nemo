@@ -17,7 +17,8 @@ public:
   // Encode MemoMeta to string
   virtual bool EncodeTo(std::string& meta) = 0;
   virtual std::string ToString() = 0;
-
+  virtual int64_t Volume() = 0;
+  virtual int64_t Length() = 0;
   static bool Create(DBType type, MetaPtr &p_meta);
 };
 
@@ -51,6 +52,12 @@ struct DefaultMeta : public NemoMeta {
     res.append(buf);
     return res;
   }
+  virtual int64_t Volume() {
+    return vol;
+  }
+  virtual int64_t Length() {
+    return len;
+  }
 };
 
 //typedef DefaultMeta HashMeta;
@@ -78,6 +85,12 @@ struct HashMeta : public NemoMeta {
     res.append(buf);
     return res;
   }  
+  virtual int64_t Volume() {
+    return vol;
+  }
+  virtual int64_t Length() {
+    return len;
+  }
 };
 
 struct ListMeta : public NemoMeta {
@@ -93,6 +106,12 @@ struct ListMeta : public NemoMeta {
   virtual bool DecodeFrom(const std::string& raw_meta);
   virtual bool EncodeTo(std::string& raw_meta);
   virtual std::string ToString();
+  virtual int64_t Volume() {
+    return vol;
+  }
+  virtual int64_t Length() {
+    return len;
+  }
 };
 
 }

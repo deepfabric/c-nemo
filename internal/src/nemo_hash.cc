@@ -32,7 +32,7 @@ Status Nemo::HChecknRecover(const std::string& key) {
   // Generate prefix
   std::string key_start = EncodeHashKey(key, "");
   // Iterater and cout
-  int field_count = 0;
+  int64_t field_count = 0;
   int64_t volume = 0;
   rocksdb::Iterator *it;
   rocksdb::ReadOptions iterate_options;
@@ -78,7 +78,7 @@ Status Nemo::HCheckMetaKey(const std::string& key) {
     // Generate prefix
     std::string key_start = EncodeHashKey(key, "");
     // Iterater and cout
-    int field_count = 0;
+    int64_t field_count = 0;
     int64_t volume = 0;
     rocksdb::Iterator *it;
     rocksdb::ReadOptions iterate_options;
@@ -107,8 +107,8 @@ Status Nemo::HCheckMetaKey(const std::string& key) {
       return Status::OK();
     } else {
       char err_msg[1024];
-      sprintf(err_msg,"meta key[%s]: len[%d],vol[%d].Summary calculated from data key: len[%d],vol[%d].",
-                            key,meta.len,meta.vol,field_count,volume);
+      sprintf(err_msg,"meta key[%s]: len[%ld],vol[%ld].Summary calculated from data key: len[%ld],vol[%ld].",
+                            key.c_str(),meta.len,meta.vol,field_count,volume);
       return Status::Corruption(err_msg);
     }
 
