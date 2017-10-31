@@ -1,6 +1,6 @@
 GCC = g++
 CPPFLAGS = -DROCKSDB_PLATFORM_POSIX -DROCKSDB_LIB_IO_POSIX  -DOS_LINUX -Wall -W -Wno-unused-parameter -DDEBUG -D__XDEBUG__ -g -O2 -std=c++11
-OBJECT = meta_scan
+OBJECT = meta_scan hash_meta_check
 
 LIB_PATH = -L ../../output/lib
 			
@@ -16,6 +16,8 @@ INCLUDE_PATH = -I../../output/include/ \
 							 -I../../3rdparty/nemo-rocksdb/rocksdb/ \
 							 -I../../3rdparty/nemo-rocksdb/rocksdb/include
 
+OBJS = meta_scan.o hash_meta_check.o
+
 .PHONY: all clean
 
 
@@ -27,10 +29,13 @@ INCLUDE_PATH = -I../../output/include/ \
 all: $(OBJECT)
 	rm *.o
 
-$(OBJECT): $(OBJECT).o
-	$(GCC) $(CPPFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
+meta_scan: meta_scan.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
 
-%.o : %.cc
+hash_meta_check: hash_meta_check.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
+
+$(OBJS): %.o : %.cc
 	$(GCC) $(CPPFLAGS) -c $< -o $@ $(INCLUDE_PATH)
 
 clean:

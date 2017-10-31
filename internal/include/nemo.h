@@ -309,6 +309,7 @@ public:
     // ChecknRecover function for different type db
     Status ChecknRecover(DBType type, const std::string& key);
     Status HChecknRecover(const std::string& key);
+    Status HCheckMetaKey(const std::string& key);
     Status LChecknRecover(const std::string& key);
     Status SChecknRecover(const std::string& key);
     Status ZChecknRecover(const std::string& key);

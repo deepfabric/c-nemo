@@ -68,6 +68,52 @@ Status Nemo::HChecknRecover(const std::string& key) {
   return hash_db_->WriteWithOldKeyTTL(w_opts_nolog(), &(writebatch));
 }
 
+Status Nemo::HCheckMetaKey(const std::string& key) {
+    RecordLock l(&mutex_hash_record_, key);
+    HashMeta meta;
+    Status s = HGetMetaByKey(key, meta);
+    if (!s.ok()) {
+      return s;
+    }
+    // Generate prefix
+    std::string key_start = EncodeHashKey(key, "");
+    // Iterater and cout
+    int field_count = 0;
+    int64_t volume = 0;
+    rocksdb::Iterator *it;
+    rocksdb::ReadOptions iterate_options;
+    iterate_options.snapshot = hash_db_->GetSnapshot();
+    iterate_options.fill_cache = false;
+    it = hash_db_->NewIterator(iterate_options);
+    it->Seek(key_start);
+    std::string dbkey, dbfield;
+    while (it->Valid()) {
+      if ((it->key())[0] != DataType::kHash) {
+        break;
+      }
+      DecodeHashKey(it->key(), &dbkey, &dbfield);
+      if (dbkey != key) {
+        break;
+      }
+      ++field_count;
+      volume += dbkey.size() + dbfield.size() + it->value().size();        // add volume statistic
+      it->Next();
+    }
+    hash_db_->ReleaseSnapshot(iterate_options.snapshot);
+    delete it;
+    
+    // Compare
+    if (meta.len == field_count && meta.vol == volume ) {
+      return Status::OK();
+    } else {
+      char err_msg[1024];
+      sprintf(err_msg,"meta key[%s]: len[%d],vol[%d].Summary calculated from data key: len[%d],vol[%d].",
+                            key,meta.len,meta.vol,field_count,volume);
+      return Status::Corruption(err_msg);
+    }
+
+}
+
 Status Nemo::HSet(const rocksdb::Slice &key, const rocksdb::Slice &field, const rocksdb::Slice &val, int * res) {
     if (key.size() >= KEY_MAX_LENGTH || key.size() <= 0) {
        return Status::InvalidArgument("Invalid key length");
