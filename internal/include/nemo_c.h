@@ -208,7 +208,8 @@ extern void * nemo_HGetIndexInfo(nemo_t * nemo,const char * key,const size_t key
 
 extern void nemo_HSetIndexInfo(nemo_t * nemo,const char * key,const size_t keylen, const char * index, size_t index_len , char ** errptr);
 
-extern nemo_HmetaIterator_t  * nemo_HmetaScan(nemo_t *nemo,const char * start,const size_t startlen, const char * end, const size_t endlen, bool use_snapshot);
+extern nemo_HmetaIterator_t  * nemo_HmetaScan(nemo_t *nemo,const char * start,const size_t startlen, const char * end, const size_t endlen, \
+												bool use_snapshot, bool skip_nil_index);
 
 extern void HmetaNext(nemo_HmetaIterator_t * it);
 

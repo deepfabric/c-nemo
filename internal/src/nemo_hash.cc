@@ -566,7 +566,7 @@ HIterator* Nemo::HScan(const std::string &key, const std::string &start, const s
     return new HIterator(it,hash_db_.get() ,iter_options, key); 
 }
 
-HmetaIterator * Nemo::HmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot){
+HmetaIterator * Nemo::HmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot, bool skip_nil_index){
     std::string key_start, key_end;
     key_start = EncodeHsizeKey(start);
     if (end.empty()) {
@@ -585,7 +585,7 @@ HmetaIterator * Nemo::HmetaScan( const std::string &start, const std::string &en
     
     rocksdb::Iterator *it = hash_db_->NewIterator(read_options);
     it->Seek(key_start);
-    return new HmetaIterator(it, hash_db_.get() ,iter_options,start); 
+    return new HmetaIterator(it, hash_db_.get() ,iter_options,start,skip_nil_index); 
 }
 
 Status Nemo::HSetnx(const std::string &key, const std::string &field, const std::string &val, int64_t * res) {

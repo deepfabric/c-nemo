@@ -739,16 +739,20 @@ extern "C"	{
 		nemo_SaveError(errptr,nemo->rep->HSetIndexInfo(rocksdb::Slice(key,keylen),rocksdb::Slice(index,index_len)));
 	}
 
-	nemo_HmetaIterator_t  * nemo_HmetaScan(nemo_t *nemo, const char * start,const size_t startlen, const char * end, const size_t endlen, bool use_snapshot){
+	nemo_HmetaIterator_t  * nemo_HmetaScan(nemo_t *nemo, 			\
+						const char * start,const size_t startlen, const char * end, const size_t endlen, 	\
+						bool use_snapshot, bool skip_nil_index){
 		nemo_HmetaIterator_t * it = new nemo_HmetaIterator_t;
-		it->rep = nemo->rep->HmetaScan(std::string(start,startlen),std::string(end,endlen),1LL << 60,use_snapshot);
+		it->rep = nemo->rep->HmetaScan(std::string(start,startlen),std::string(end,endlen),1LL << 60,use_snapshot,skip_nil_index);
 		if(it->rep->Valid()){
-			while(1){
-				if(it->rep->IndexInfo().size()>0)
-					break;
-				else if(!it->rep->Valid())
-					break;
-				it->rep->Next();
+			if(skip_nil_index) {
+				while(1){
+					if(it->rep->IndexInfo().size()>0)
+						break;
+					else if(!it->rep->Valid())
+						break;
+					it->rep->Next();
+				}
 			}
 		}
 		return it;
@@ -756,14 +760,19 @@ extern "C"	{
 
 	void HmetaNext(nemo_HmetaIterator_t * it)
 	{
-		while(1){
+		if(it->rep->_skip_nil_index){
+			while(1){
+				it->rep->Next();
+				if(it->rep->IndexInfo().size()>0)
+					break;
+				else if(!it->rep->Valid())
+					break;
+			}
+		} else {
 			it->rep->Next();
-			if(it->rep->IndexInfo().size()>0)
-				break;
-			else if(!it->rep->Valid())
-				break;
 		}
 	}
+	
 	bool HmetaValid(nemo_HmetaIterator_t * it){
 		return it->rep->Valid();	
 	}

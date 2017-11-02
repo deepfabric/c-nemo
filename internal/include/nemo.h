@@ -154,7 +154,7 @@ public:
     Status HVals(const std::string &key, std::vector<std::string> &vals);
     Status HIncrby(const std::string &key, const std::string &field, int64_t by, std::string &new_val);
     Status HIncrbyfloat(const std::string &key, const std::string &field, double by, std::string &new_val);
-    HmetaIterator * HmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot );
+    HmetaIterator * HmetaScan( const std::string &start, const std::string &end, uint64_t limit, bool use_snapshot, bool skip_nil_index=false);
     bool HSize(const rocksdb::Slice &key, HashMeta & meta);
     int IncrHSize(const rocksdb::Slice &key, int64_t incrlen ,int64_t incrvol, rocksdb::WriteBatch &writebatch);
 

@@ -213,7 +213,7 @@ private:
 
 class HmetaIterator : public IteratorRO{
 public:
-    HmetaIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options,const rocksdb::Slice &key);
+    HmetaIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options,const rocksdb::Slice &key, bool skip_nil_index=false);
     virtual void Next();
     virtual void Skip(int64_t offset);
     virtual bool Valid();
@@ -222,6 +222,7 @@ public:
     rocksdb::Slice key();
     int64_t volume();
     void CheckAndLoadData();
+    bool _skip_nil_index;
 private:
     HmetaIterator(HmetaIterator&);
     void operator=(HmetaIterator&);

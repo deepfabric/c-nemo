@@ -350,8 +350,8 @@ void nemo::SIterator::Skip(int64_t offset) {
 }
 
 // HASH meta key
-nemo::HmetaIterator::HmetaIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key)
-  : IteratorRO(it,db_nemo, iter_options) {
+nemo::HmetaIterator::HmetaIterator(rocksdb::Iterator *it,rocksdb::DBNemo * db_nemo, const IteratorOptions iter_options, const rocksdb::Slice &key, bool skip_nil_index)
+  : IteratorRO(it,db_nemo, iter_options), _skip_nil_index(skip_nil_index) {
     CheckAndLoadData();
   }
 
