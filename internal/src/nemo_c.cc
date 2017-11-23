@@ -136,6 +136,15 @@ extern "C"	{
 		cOpts->rep.max_background_flushes         = goOpts->max_background_flushes;
 		cOpts->rep.max_background_compactions     = goOpts->max_background_compactions;
 		cOpts->rep.max_bytes_for_level_multiplier = goOpts->max_bytes_for_level_multiplier;
+
+		cOpts->rep.max_bytes_for_level_base 			= goOpts->max_bytes_for_level_base;
+		cOpts->rep.level0_slowdown_writes_trigger 		= goOpts->level0_slowdown_writes_trigger;
+		cOpts->rep.level0_stop_writes_trigger 			= goOpts->level0_stop_writes_trigger;
+		cOpts->rep.min_write_buffer_number_to_merge 	= goOpts->min_write_buffer_number_to_merge;
+		cOpts->rep.level0_file_num_compaction_trigger 	= goOpts->level0_file_num_compaction_trigger;
+		cOpts->rep.delayed_write_rate 					= goOpts->delayed_write_rate;
+		cOpts->rep.max_write_buffer_number 				= goOpts->max_write_buffer_number;
+
 	}
 
 	void nemo_Compact(nemo_t * nemo,int db_type,bool sync,char ** errptr){

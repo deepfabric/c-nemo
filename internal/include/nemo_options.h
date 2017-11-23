@@ -18,6 +18,14 @@ struct Options {
     int max_background_compactions;
     int max_bytes_for_level_multiplier;
 
+    int max_bytes_for_level_base;
+    int level0_slowdown_writes_trigger;
+    int level0_stop_writes_trigger;
+    int min_write_buffer_number_to_merge;
+    int level0_file_num_compaction_trigger;
+    int delayed_write_rate;
+    int max_write_buffer_number;
+
 	Options() : create_if_missing(true),
         write_buffer_size(64 * 1024 * 1024),
         max_open_files(5000),
@@ -28,7 +36,15 @@ struct Options {
         compression(true),
         max_background_flushes(1),
         max_background_compactions(1),
-        max_bytes_for_level_multiplier(10) {}
+        max_bytes_for_level_multiplier(10),
+
+        max_bytes_for_level_base(256 * 1024 *1024),
+        level0_slowdown_writes_trigger(20),
+        level0_stop_writes_trigger(32),
+        min_write_buffer_number_to_merge(1),
+        level0_file_num_compaction_trigger(4),
+        delayed_write_rate(2 * 1024 * 1024),
+        max_write_buffer_number(2) {}
 };
 
 }; // end namespace nemo

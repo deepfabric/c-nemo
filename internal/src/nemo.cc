@@ -75,10 +75,10 @@ Nemo::Nemo(const std::string &db_path, const Options &options)
      open_options_.target_file_size_multiplier = options.target_file_size_multiplier;
    }
 
-   if (options.max_background_flushes > 0 && options.max_background_flushes <= 4) {
+   if (options.max_background_flushes > 0 ) {
       open_options_.max_background_flushes = options.max_background_flushes;
    }
-   if (options.max_background_compactions > 0 && options.max_background_compactions <= 4) {
+   if (options.max_background_compactions > 0 ) {
       open_options_.max_background_compactions = options.max_background_compactions;
    }
    if (options.max_bytes_for_level_multiplier < 10) {
@@ -87,6 +87,28 @@ Nemo::Nemo(const std::string &db_path, const Options &options)
    if (options.max_bytes_for_level_multiplier >= 10) {
       open_options_.max_bytes_for_level_multiplier = 10;
    }
+
+   if(options.max_bytes_for_level_base>0){
+      open_options_.max_bytes_for_level_base = options.max_bytes_for_level_base;
+   }
+   if(options.level0_slowdown_writes_trigger>0){
+      open_options_.level0_slowdown_writes_trigger = options.level0_slowdown_writes_trigger;
+   }
+   if(options.level0_stop_writes_trigger>0){
+      open_options_.level0_stop_writes_trigger = options.level0_stop_writes_trigger;
+   }
+   if(options.min_write_buffer_number_to_merge>0){
+      open_options_.min_write_buffer_number_to_merge = options.min_write_buffer_number_to_merge;
+   }
+   if(options.level0_file_num_compaction_trigger>0){
+     open_options_.level0_file_num_compaction_trigger = options.level0_file_num_compaction_trigger;
+   }
+   if(options.delayed_write_rate>0){
+     open_options_.delayed_write_rate = options.delayed_write_rate;
+   }
+   if(options.max_write_buffer_number>0){
+     open_options_.max_write_buffer_number = options.max_write_buffer_number;
+   }               
 
    //open_options_.max_bytes_for_level_base = (128 << 20);
 

@@ -40,7 +40,16 @@ typedef struct{
     bool compression;
     int max_background_flushes;
     int max_background_compactions;
-    int max_bytes_for_level_multiplier;	
+    int max_bytes_for_level_multiplier;
+
+    int max_bytes_for_level_base;
+    int level0_slowdown_writes_trigger;
+    int level0_stop_writes_trigger;
+    int min_write_buffer_number_to_merge;
+    int level0_file_num_compaction_trigger;
+    int delayed_write_rate;
+    int max_write_buffer_number;
+
 } GoNemoOpts;
 
 enum  {
