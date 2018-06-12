@@ -16,7 +16,7 @@ int main()
     options.target_file_size_base = 20 * 1024 * 1024;
 
     //options.compression = false; 
-    Nemo *n = new Nemo("./tmp/", options); 
+    Nemo *n = new Nemo("/tmp/nemo-test", options); 
     Status s;
 
     std::string res;
