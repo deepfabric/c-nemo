@@ -230,6 +230,24 @@ extern const char* HmetaIndexInfo(nemo_HmetaIterator_t * it, size_t* indexlen);
 
 extern void HmetaIteratorFree(nemo_HmetaIterator_t * it);
 
+extern nemo_HIterator_t * nemo_HScan(nemo_t *nemo,
+								      const char * key, const size_t keylen,	\
+									  const char * start,const size_t startlen, \
+									  const char * end,  const size_t endlen, \
+									  bool use_snapshot);
+
+extern void HNext(nemo_HIterator_t * it);
+
+extern bool HValid(nemo_HIterator_t * it);
+
+extern const char* HKey(nemo_HIterator_t * it, size_t* keylen);
+
+extern const char* HField(nemo_HIterator_t * it, size_t* fieldlen);
+
+extern const char* HValue(nemo_HIterator_t * it, size_t* vallen);
+
+extern void HIteratorFree(nemo_HIterator_t * it);
+
   // ==============List=====================
 extern void nemo_LIndex(nemo_t * nemo,const char * key, const size_t keylen, const int64_t index, char ** val, size_t * val_len, char ** errptr);
 

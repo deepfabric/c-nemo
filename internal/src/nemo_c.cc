@@ -801,6 +801,43 @@ extern "C"	{
 		delete it;
 	}
 
+	nemo_HIterator_t  * nemo_HScan(nemo_t *nemo, 			\
+						const char * key, const size_t keylen,	\
+						const char * start,const size_t startlen, \
+						const char * end, const size_t endlen, 	\
+						bool use_snapshot) {
+		nemo_HIterator_t * it = new nemo_HIterator_t;
+		it->rep = nemo->rep->HScan(std::string(key,keylen),std::string(start,startlen),std::string(end,endlen),1LL << 60,use_snapshot);
+		return it;
+	}
+	void HNext(nemo_HIterator_t * it)
+	{
+		it->rep->Next();
+	}
+	bool HValid(nemo_HIterator_t * it){
+		return it->rep->Valid();	
+	}
+	const char* HKey(nemo_HIterator_t * it, size_t* keylen)
+	{
+		*keylen = it->rep->key().size();
+		return it->rep->key().data();
+	}	
+	const char* HField(nemo_HIterator_t * it, size_t* filedlen)
+	{
+		*filedlen = it->rep->field().size();
+		return it->rep->field().data();
+	}
+	const char* HValue(nemo_HIterator_t * it, size_t* vallen)
+	{
+		*vallen = it->rep->value().size();
+		return it->rep->value().data();
+	}
+	void HIteratorFree(nemo_HIterator_t * it)
+	{
+		delete it->rep;
+		delete it;
+	}
+
 	// ==============List=====================
 	void nemo_LIndex(nemo_t * nemo,const char * key, const size_t keylen, const int64_t index, char ** val, size_t * val_len, char ** errptr){
 		std::string val_str;
