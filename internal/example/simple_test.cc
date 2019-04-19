@@ -4,6 +4,7 @@
 #include <ctime>
 #include <inttypes.h>
 #include <limits>
+#include <unistd.h>
 
 #include "nemo.h"
 #include "xdebug.h"
@@ -117,6 +118,8 @@ int main() {
 
   s = n->HGet("Key", "field1", &res);
   assert(s.IsNotFound());
+
+  //sleep(3600);
 
   delete n;
 

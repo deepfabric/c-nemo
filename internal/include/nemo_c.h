@@ -50,6 +50,8 @@ typedef struct{
     int delayed_write_rate;
     int max_write_buffer_number;
 
+	bool disable_wal;
+
 } GoNemoOpts;
 
 enum  {

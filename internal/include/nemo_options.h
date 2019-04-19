@@ -25,6 +25,7 @@ struct Options {
     int level0_file_num_compaction_trigger;
     int delayed_write_rate;
     int max_write_buffer_number;
+    bool disable_wal;
 
 	Options() : create_if_missing(true),
         write_buffer_size(64 * 1024 * 1024),
@@ -44,7 +45,8 @@ struct Options {
         min_write_buffer_number_to_merge(1),
         level0_file_num_compaction_trigger(4),
         delayed_write_rate(2 * 1024 * 1024),
-        max_write_buffer_number(2) {}
+        max_write_buffer_number(2),
+        disable_wal(false) {}
 };
 
 }; // end namespace nemo

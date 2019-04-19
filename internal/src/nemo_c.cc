@@ -145,6 +145,8 @@ extern "C"	{
 		cOpts->rep.delayed_write_rate 					= goOpts->delayed_write_rate;
 		cOpts->rep.max_write_buffer_number 				= goOpts->max_write_buffer_number;
 
+		cOpts->rep.disable_wal                          = goOpts->disable_wal;
+
 	}
 
 	void nemo_Compact(nemo_t * nemo,int db_type,bool sync,char ** errptr){

@@ -3,6 +3,7 @@
 #include <dirent.h>
 #include <iostream>
 #include <algorithm>
+#include <iostream>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "nemo_list.h"
@@ -15,9 +16,11 @@
 
 namespace nemo {
 
+bool DisableWAL = false;
+
 rocksdb::WriteOptions w_opts_nolog(){
     rocksdb::WriteOptions opts;
-    opts.disableWAL = true;
+    opts.disableWAL = DisableWAL;
     return opts;
 };
 
@@ -28,6 +31,10 @@ Nemo::Nemo(const std::string &db_path, const Options &options)
     bg_cv_(&mutex_bgtask_),
     scan_keynum_exit_(false),
     dump_to_terminate_(false) {
+
+   DisableWAL = options.disable_wal;
+   
+   std::cout << "disable wal is " << DisableWAL << "\n";
 
    pthread_mutex_init(&(mutex_cursors_), NULL);
    pthread_mutex_init(&(mutex_dump_), NULL);
