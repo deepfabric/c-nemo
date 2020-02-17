@@ -40,6 +40,96 @@ int main() {
   rocksdb::Options options;
   options.create_if_missing = true;
 	options.merge_operator.reset(new StringMergeOperator());
+
+  {
+    rocksdb::Status s = rocksdb::DBNemo::Open(options, "./batchttl", &db, '\0');
+    std::vector<rocksdb::KVOT> kvots(1);
+    kvots[0].key = "key";
+    kvots[0].val = "val";
+    kvots[0].ops = 0;
+    kvots[0].ttl = -1;
+    s = db->WriteBatchTtl(rocksdb::WriteOptions(), kvots);
+    if (s.ok()){
+      std::cout << "batch write ok with negative ttl\n";
+      return -1;
+    } else{
+      std::cout << "fail to batch write, " << s.ToString() << "\n";
+    }
+    kvots.clear();
+    kvots.push_back(std::move(rocksdb::KVOT("key1","val1",0,1)));
+    kvots.push_back(std::move(rocksdb::KVOT("key3","val3",2,1)));
+    s = db->WriteBatchTtl(rocksdb::WriteOptions(), kvots);
+    if (s.ok()){
+      std::cout << "batch write ok with unknown ops\n";
+      return -1;
+    } else{
+      std::cout << "fail to batch write, " << s.ToString() << "\n";
+    }
+    kvots.clear();
+    kvots.push_back(std::move(rocksdb::KVOT("key1","val1",0,1)));
+    kvots.push_back(std::move(rocksdb::KVOT("key2","val2",0,5)));
+    kvots.push_back(std::move(rocksdb::KVOT("key3","val3",1,0)));
+    s = db->WriteBatchTtl(rocksdb::WriteOptions(), kvots);
+    if (s.ok()){
+      std::cout << "batch write ok\n";
+    }
+    else{
+      std::cout << "fail to batch write, " << s.ToString() << "\n";
+      return -1;
+    }
+    sleep(2);
+    for (auto & kvot: kvots){
+      std::string op;
+      switch(kvot.ops) {
+                  case 0:
+                    op = "Put ";
+                    break;
+                  case 1:
+                    op = "Del ";
+                    break;
+                  default:
+                    op = "Unknown ";
+      }
+      std::cout << "batch write test case "
+                << op
+                << kvot.key.ToString() << " "
+                << kvot.val.ToString() << " "
+                << kvot.ttl << "\n";
+      std::string value;
+      s = db->Get(rocksdb::ReadOptions(), kvot.key, &value);
+      if (s.ok()){
+        if(kvot.val!=value){
+          std::cout << "fatal error, kvot value "
+                    << " != Get value "
+                    << value
+                    << "\n";
+          return 0;
+        } else {
+          std::cout << "Get ok\n";
+        }
+      } else {
+        std::cout << "fail to Get, "
+                  << s.ToString()
+                  << "\n";
+      }
+      int32_t ttl=0;
+      s = db->GetKeyTTL(rocksdb::ReadOptions(), kvot.key, &ttl);
+      if (s.ok()){
+        std::cout << "GetKeyTTL "
+                  << ttl
+                  << " old, ttl "
+                  << kvot.ttl
+                  << "\n";
+      } else {
+        std::cout << "fail to GetKeyTTL, "
+                  << s.ToString()
+                  << "\n";
+      }
+    }
+    delete db;
+    return 0;
+  }
+
   rocksdb::Status s = rocksdb::DBNemo::Open(options, "./db", &db, 'H');
 
 /*

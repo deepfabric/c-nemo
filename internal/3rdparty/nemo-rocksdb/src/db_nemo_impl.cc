@@ -7,6 +7,7 @@
 
 #include "rocksdb/convenience.h"
 
+#include <iostream>
 namespace rocksdb {
 
 static NemoCompactionFilter* g_compaction_filter = nullptr;
@@ -116,7 +117,7 @@ Status DBNemoImpl::SanityCheckTimestamp(const Slice& str, Env* env) {
     return Status::OK();  // Treat the data as fresh if could not get current time
   }
   if (timestamp_value != 0 && timestamp_value < curtime) {
-    return Status::NotFound("Is stale\n");
+    return Status::NotFound("Is stale");
   }
   return Status::OK();
 }
@@ -326,6 +327,78 @@ Status DBNemoImpl::Write(const WriteOptions& opts, WriteBatch* updates, int32_t 
   } else {
     return db_->Write(opts, &(handler.updates_ttl));
   }
+}
+
+Status DBNemoImpl::WriteBatchTtl(const WriteOptions& opts, std::vector<KVOT>& kvots) {
+  class Handler : public WriteBatch::Handler {
+   public:
+    DBImpl* db_;
+    WriteBatch updates_ttl;
+    explicit Handler(Env* env, DB* db, char meta_prefix)
+        : db_(reinterpret_cast<DBImpl*>(db)), env_(env),meta_prefix_(meta_prefix) {}
+
+    virtual Status PutCF(uint32_t column_family_id, const Slice& key,
+                         const Slice& value) override {
+
+      WriteBatchInternal::Put(&updates_ttl, column_family_id, key, value);
+      return Status::OK();
+    }
+    virtual Status DeleteCF(uint32_t column_family_id,
+                            const Slice& key) override {
+      WriteBatchInternal::Delete(&updates_ttl, column_family_id, key);
+      return Status::OK();
+    }
+    virtual void LogData(const Slice& blob) override {
+      updates_ttl.PutLogData(blob);
+    }
+
+   private:
+    Env* env_;
+    int32_t ttl_;
+    char meta_prefix_;
+  };
+  //@ADD assign the db pointer
+
+  WriteBatch updates;
+  Env* env = GetEnv();
+  for (auto & kvot : kvots){
+    switch (kvot.ops) {
+      case 0:{
+        if (kvot.ttl<0) {
+          return Status::InvalidArgument("ttl value is negative");
+        }
+        std::string value_with_ver_ts;
+        uint32_t version;
+        int32_t timestamp;
+        GetVersionAndTS(db_, meta_prefix_, kvot.key, &version, &timestamp);
+        Status st = AppendVersionAndTS(kvot.val, &value_with_ver_ts, env, version, kvot.ttl);
+        /*
+        std::cout << "kvot \n";
+        std::cout << kvot.key << "\n";
+        std::cout << kvot.val << "\n";
+        std::cout << kvot.ttl << "\n";
+        std::cout << value_with_ver_ts << "\n";
+        */
+        if (!st.ok()) {
+          return st;
+        } else{
+          updates.Put(kvot.key,value_with_ver_ts);
+        }
+        break;
+      }
+      case 1:{
+        updates.Delete(kvot.key);
+        break;
+      }
+      default:
+        return Status::NotSupported("unkown batch write operation");
+    }
+  }
+
+  Handler handler(env, db_, meta_prefix_);
+  updates.Iterate(&handler);
+  return db_->Write(opts, &(handler.updates_ttl));
+
 }
 
 Status DBNemoImpl::WriteWithExpiredTime(const WriteOptions& opts, WriteBatch* updates, int32_t expired_time) {
@@ -757,7 +830,7 @@ Status DBNemoImpl::SanityCheckVersionAndTS(const Slice& key,
   // Treat the data as fresh if could not get current time
   if (GetEnv()->GetCurrentTime(&curtime).ok()) {
     if (timestamp_value != 0 && timestamp_value < curtime) { // 0 means fresh
-      return Status::NotFound("Is stale\n");
+      return Status::NotFound("Is stale");
     }
   }
 

@@ -10,6 +10,17 @@
 
 namespace rocksdb {
 
+struct KVOT {
+  public:
+  Slice key;
+  Slice val;
+  int8_t  ops;
+  int32_t ttl;
+  KVOT(){}
+  KVOT(std::string & k, std::string & v, int o, int t) : key(k), val(v), ops(o), ttl(t) {}
+  KVOT(const char * k, const char * v, int o, int t) : key(k), val(v), ops(o), ttl(t) {}
+};
+
 class DBNemo: public StackableDB {
  public:
 
@@ -32,6 +43,7 @@ class DBNemo: public StackableDB {
 
   using StackableDB::Write;
   virtual Status Write(const WriteOptions& opts, WriteBatch* updates, int32_t ttl) = 0;
+  virtual Status WriteBatchTtl(const WriteOptions& opts, std::vector<KVOT>& kvots) = 0;
 
   virtual Status PutWithExpiredTime(const WriteOptions& options, const Slice& key, const Slice& val, int32_t expired_time) = 0;
   virtual Status WriteWithExpiredTime(const WriteOptions& opts, WriteBatch* updates, int32_t expired_time) = 0;

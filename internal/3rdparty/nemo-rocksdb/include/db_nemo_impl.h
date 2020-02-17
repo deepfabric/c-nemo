@@ -81,6 +81,8 @@ class DBNemoImpl : public DBNemo {
   virtual Status Write(const WriteOptions& opts, WriteBatch* updates) override;
   virtual Status Write(const WriteOptions& opts, WriteBatch* updates,
                        int32_t ttl) override;
+  using DBNemo::WriteBatchTtl;
+  virtual Status WriteBatchTtl(const WriteOptions& opts, std::vector<KVOT>& kvots) override;
 
   using DBNemo::PutWithExpiredTime;
   virtual Status PutWithExpiredTime(const WriteOptions& options, const Slice& key, const Slice& val, int32_t expired_time) override;
