@@ -63,6 +63,14 @@ Status Nemo::MSetSlice(const std::vector<KVSlice> &kvs) {
     return s;
 }
 
+Status Nemo::WriteBatchTtl(std::vector<rocksdb::KVOT>& kvots, bool sync) {
+    Status s;
+    rocksdb::WriteOptions wo;
+    wo.sync = sync;
+    s = kv_db_->WriteBatchTtl(wo, kvots);
+    return s;
+}
+
 Status Nemo::KMDel(const std::vector<std::string> &keys, int64_t* count) {
     *count = 0;
     Status s;

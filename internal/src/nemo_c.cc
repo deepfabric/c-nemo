@@ -249,6 +249,19 @@ extern "C"	{
 		nemo_SaveError(errptr,nemo->rep->MSetSlice(kv));
 	}
 
+	void nemo_WriteBatchTtl(nemo_t * nemo, int const num, const char ** key, size_t * keylen, \
+														  const char ** val, size_t * vallen, \
+														  int32_t * ops, int32_t * ttls, bool sync, char ** errptr){
+		std::vector<rocksdb::KVOT> kvots(num);
+		for(int i=0;i<num;i++){
+			kvots[i].key = rocksdb::Slice(key[i],keylen[i]);
+			kvots[i].val = rocksdb::Slice(val[i],vallen[i]);
+			kvots[i].ops = ops[i];
+			kvots[i].ttl = ttls[i];
+		}
+		nemo_SaveError(errptr,nemo->rep->WriteBatchTtl(kvots, sync));
+	}
+
 	void * nemo_MGet(nemo_t * nemo,  const int num, const char ** key, size_t * keylen, \
 	 		             		                    const char ** val, size_t * vallen, char ** errs){
 		std::vector<rocksdb::Slice> keys(num);

@@ -69,6 +69,7 @@ int main() {
     kvots.push_back(std::move(rocksdb::KVOT("key1","val1",0,1)));
     kvots.push_back(std::move(rocksdb::KVOT("key2","val2",0,5)));
     kvots.push_back(std::move(rocksdb::KVOT("key3","val3",1,0)));
+    kvots.push_back(std::move(rocksdb::KVOT("key4","val4",0,0)));
     s = db->WriteBatchTtl(rocksdb::WriteOptions(), kvots);
     if (s.ok()){
       std::cout << "batch write ok\n";

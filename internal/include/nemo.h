@@ -101,6 +101,7 @@ public:
     Status Get(const rocksdb::Slice &key, std::string *val);
     Status MSet(const std::vector<KV> &kvs);
     Status MSetSlice(const std::vector<KVSlice> &kvs);
+    Status WriteBatchTtl(std::vector<rocksdb::KVOT>& kvots, bool sync);
     Status KMDel(const std::vector<std::string> &keys, int64_t* count);
     Status MGet(const std::vector<std::string> &keys, std::vector<KVS> &kvss);
     Status MGetSlice(const std::vector<rocksdb::Slice> &keys, std::vector<SS> &vs);

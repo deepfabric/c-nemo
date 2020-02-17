@@ -118,6 +118,9 @@ extern void * nemo_Get(nemo_t * nemo,const char * key, const size_t keylen, cons
 extern void nemo_MSet(nemo_t * nemo, int const num,const char ** key, size_t * keylen, \
                                                    const char ** val, size_t * vallen, char ** errptr);
 
+extern void nemo_WriteBatchTtl(nemo_t * nemo, int const num, const char ** key, size_t * keylen, const char ** val, size_t * vallen, \
+															 int32_t * ops, int32_t * ttls, bool sync, char ** errptr);
+
 extern void * nemo_MGet(nemo_t * nemo,  const int num, const char ** key, size_t * keylen, \
 													   const char ** val, size_t * vallen, char ** errs);
 extern nemo_KIterator_t  * nemo_KScan(nemo_t *nemo, const char * start,const size_t startlen, 
