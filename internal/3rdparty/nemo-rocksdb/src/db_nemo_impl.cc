@@ -691,7 +691,7 @@ Status DBNemoImpl::GetKeyTTL(const ReadOptions& options, const Slice& key, int32
 
     st = SanityCheckVersionAndTS(key, value);
     if (st.ok()) {
-      if (timestamp == 0) {
+      if (timestamp <= 0) {
         *ttl = -1;
         return Status::OK();
       }
@@ -832,7 +832,7 @@ Status DBNemoImpl::SanityCheckVersionAndTS(const Slice& key,
   int64_t curtime;
   // Treat the data as fresh if could not get current time
   if (GetEnv()->GetCurrentTime(&curtime).ok()) {
-    if (timestamp_value != 0 && timestamp_value < curtime) { // 0 means fresh
+    if (timestamp_value >0 && timestamp_value < curtime) { // 0 means fresh
       return Status::NotFound("Is stale");
     }
   }
