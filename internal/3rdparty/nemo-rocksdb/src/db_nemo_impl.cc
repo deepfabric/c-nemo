@@ -740,6 +740,9 @@ Status DBNemoImpl::AppendVersionAndTS(const Slice& val,
     if (!st.ok()) {
       return st;
     }
+    if ((int32_t)(curtime+ttl-1) <0 ){
+      return Status::InvalidArgument("ttl overflow");
+    }
     EncodeFixed32(ts_string, (int32_t)(curtime+ttl-1));
   }
   val_with_ver_ts->append(ts_string, kTSLength);

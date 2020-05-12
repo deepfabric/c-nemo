@@ -15,11 +15,77 @@ int main()
     nemo::Options options;
     options.target_file_size_base = 20 * 1024 * 1024;
 
-    Nemo *n = new Nemo("./tmp/", options); 
+    Nemo *n = new Nemo("/go/src/github.com/deepfabric/nemo-test-data/nemo", options); 
     Status s;
 
     std::string res;
+    KIterator *scan_iter;
 
+    char * start = "z\0\0\0\0\0\0\0\0ts_c73b7b96-d4a0-4f82-9617-4df3d8a1ced5@0002_11000099";
+    char * end   = "z\0\0\0\0\0\0\0\0tt";
+    std::string key  = "zts_c73b7b96-d4a0-4f82-9617-4df3d8a1ced5@0002_11000099";
+    std::string key2 = "ztt";
+    rocksdb::Slice startSlice(start,key.length()+8);
+
+    std::string keyStart(start, key.length()+8);
+    std::string keyEnd  (end,   key2.length()+8);
+    std::cout << "keyStart length: "  << keyStart.length() << "\n";
+    std::cout << "keySlice length: " <<  key.length()+8 << "\n";
+
+    std::cout << "keyStart: " << keyStart << "\n";
+    s = n->Get(keyStart, &res);
+    log_info("Get status[%s] return [%s]", s.ToString().c_str(), res.c_str());
+    std::cout << "res string: " << res << "\n";
+
+    scan_iter = n->KScan(keyStart, keyEnd, -1);
+    if (scan_iter == NULL) {
+        log_info("Scan error!");
+    }
+    log_info("Scan iterator!");
+    int i = 0;
+    for (; scan_iter->Valid(); scan_iter->Next()) {
+        //log_info("Test Scan key: %s, value: %s", scan_iter->key().c_str(), scan_iter->value().c_str());
+        std::string iter_key = scan_iter->key();
+        std::cout<< "Test Scan key: " << iter_key << "\n";
+        i++;
+        if (i>10)
+            break;
+        if ( iter_key == keyStart)
+        {
+            std::cout << "iterator find keyStart\n";
+            break;
+        }
+    }
+    log_info("Scan over!");
+
+    log_info("test-key-TTL");
+    s = n->Set("test-key-TTL","test-val-TTL",1800000000);
+    log_info("Set test-key-TTL with ttl[1800000000]  status[%s]", s.ToString().c_str());
+    //n->Set("test-key-TTL","test-val-TTL",1);
+    //sleep(3);
+    s = n->Get("test-key-TTL", &res);
+    log_info("Get status[%s] return [%s]", s.ToString().c_str(), res.c_str());
+    delete scan_iter;
+    scan_iter = n->KScan("test-key-TTL", "test-key-TTL-End", -1);
+    if (scan_iter == NULL) {
+        log_info("Scan test-key-TTL error!");
+    }
+    log_info("Scan test-key-TTL iterator!");
+
+    for (; scan_iter->Valid(); scan_iter->Next()) {
+        std::string iter_key = scan_iter->key();
+        std::cout << "Test Scan key: " << iter_key << "\n";
+    }
+    log_info("Scan test-key-TTL over!");
+
+    /*
+    n->Compact(kKV_DB,true);
+    log_info("compact over!");
+    s = n->Get("test-key-TTL", &res);
+    log_info("Get status[%s] return [%s]", s.ToString().c_str(), res.c_str());    
+    */
+    delete n;
+    return 0;
     /*
      *************************************************KV**************************************************
      */

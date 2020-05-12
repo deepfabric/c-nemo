@@ -43,18 +43,35 @@ int main() {
 
   {
     rocksdb::Status s = rocksdb::DBNemo::Open(options, "./batchttl", &db, '\0');
-    std::vector<rocksdb::KVOT> kvots(1);
+    std::vector<rocksdb::KVOT> kvots(2);
     kvots[0].key = "key";
     kvots[0].val = "val";
     kvots[0].ops = 0;
-    kvots[0].ttl = -1;
+    kvots[0].ttl = 1000;
+    kvots[1].key = "key";
+    kvots[1].val = "val";
+    kvots[1].ops = 1;
+    kvots[1].ttl = 1000;
     s = db->WriteBatchTtl(rocksdb::WriteOptions(), kvots);
     if (s.ok()){
-      std::cout << "batch write ok with negative ttl\n";
-      return -1;
+      std::cout << "batch write ok\n";
+      //return -1;
     } else{
       std::cout << "fail to batch write, " << s.ToString() << "\n";
     }
+    std::string tmp_value;
+    s = db->Get(rocksdb::ReadOptions(), "key", &tmp_value);
+    if (s.ok()){
+      std::cout << "Get ok "
+                << tmp_value
+                << "\n";
+    } else {
+      std::cout << "fail to Get, "
+                << s.ToString()
+                << "\n";
+    }
+
+    return -1;
     kvots.clear();
     kvots.push_back(std::move(rocksdb::KVOT("key1","val1",0,1)));
     kvots.push_back(std::move(rocksdb::KVOT("key3","val3",2,1)));
